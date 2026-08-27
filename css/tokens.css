@@ -1,0 +1,29 @@
+/* ---------- Design tokens, reset, base ---------- */
+:root {
+  --paper: #F3EEE1;
+  --paper-deep: #ECE4D0;
+  --rule: #CDBF9E;
+  --ink: #2A2620;
+  --ink-soft: #74695A;
+  --accent: #7A2E27;
+  --accent-soft: #7A2E2714;
+  --accent-line: #7A2E2755;
+  --card-shadow: 0 1px 0 rgba(42,38,32,0.05), 0 8px 20px -14px rgba(42,38,32,0.35);
+
+  /* origin colours - a quiet left edge on the card, must sit inside the palette */
+  --origin-aa:        #3E5C50;   /* muted pine */
+  --origin-religious: #7A2E27;   /* the house oxblood */
+  --origin-misc:      #B08427;   /* aged brass */
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  margin: 0;
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

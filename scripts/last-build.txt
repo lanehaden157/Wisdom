@@ -1,0 +1,33 @@
+build_data.py
+  quotes.js : 934 cards  poem=10  prayer=15  quote=909
+  poems/prayers: 14 matched+moved, 11 new
+  appended new quotes: 2
+  id ledger: 934 entries, next id 935
+
+  new   #922     poem               I stand by the door.
+  new   #923     poem               'Twas battered and scarred,
+  move  #737  -> poem   (r=1.00)  I am a bow on your hands, Lord.
+  new   #924     poem               A Creed For Those Who Have Suffered
+  move  #739  -> poem   (r=1.00)  To see the Law by Christ fulfilled, 
+  move  #741  -> poem   (r=1.00)  The hill of Zion yields a thousand sacred sweets before we
+  move  #798  -> poem   (r=1.00)  For every ailment under the sun
+  new   #925     poem               Out pleasure and our duty,
+  move  #585  -> poem   (r=1.00)  Seeking to care, 
+  move  #586  -> poem   (r=1.00)  If all that we say
+  new   #926     prayer             Thy will (not mine) be done
+  move  #44   -> prayer (r=1.00)  What would you have me do?
+  move  #45   -> prayer (r=1.00)  What would you have me be?
+  move  #56   -> prayer (r=1.00)  God, save me from myself
+  new   #927     prayer             God, grant me the serenity
+  new   #928     prayer             Help me to want what you’ve given me
+  move  #269  -> prayer (r=1.00)  God grant me the grace to keep my tongue in my face
+  move  #296  -> prayer (r=1.00)  Bless them, change me
+  new   #929     prayer             Give me eyes to see and a heart to feel
+  new   #930     prayer             Oh God, you know how busy I must be this day. If I forget 
+  move  #731  -> prayer (r=1.00)  Dear Lord, grant me the grace of wonder. Surprise me, amaz
+  move  #733  -> prayer (r=1.00)  Lord Jesus, we are silly sheep who have dared to stand bef
+  move  #757  -> prayer (r=1.00)  God, kindle within me the fire of Your love, so that love,
+  new   #931     prayer             Surprise me
+  new   #932     prayer             There is a God and everything is alright
+  add   #933     quote              I don’t have to stay sober for the rest of my life every m
+  add   #934     quote              The only one sicker than someone at their first meeting is

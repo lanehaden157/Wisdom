@@ -1,0 +1,7 @@
+{
+  "_comment": "Quotes to append beyond the frozen v1 corpus (data/archive/quotes-v1.json). These were the only genuinely new blocks found in source/quotes-raw.txt that were not already in the corpus. Add more here as needed; the pipeline appends them in order after the base corpus. category = quote | poem | prayer.",
+  "quotes": [
+    { "text": "I don’t have to stay sober for the rest of my life every minute", "category": "quote" },
+    { "text": "The only one sicker than someone at their first meeting is their higher power", "category": "quote" }
+  ]
+}
