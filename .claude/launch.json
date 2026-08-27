@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "wisdom", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "4173"], "port": 4173 }
+  ]
+}
