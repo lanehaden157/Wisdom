@@ -1,8 +1,4 @@
-/* APP-WRITTEN by the tag manager. Safe to hand-edit.
-   order   : group names, in display order
-   groups  : per-group config; categories = which tabs the group shows in (omit = all)
-   tags    : slug -> { label, group }
-*/
+/* APP-WRITTEN by the tag manager. Safe to hand-edit. */
 window.Wisdom = window.Wisdom || {};
 window.Wisdom.tags = {
  "order": [
