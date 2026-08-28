@@ -1,3 +1,5 @@
-/* APP-WRITTEN. { quoteId: "aa" | "religious" | "misc" } - drives card colour. Safe to hand-edit. */
+/* APP-WRITTEN. { quoteId: "aa" | "religious" | "misc" }. */
 window.Wisdom = window.Wisdom || {};
-window.Wisdom.origins = {};
+window.Wisdom.origins = {
+ "1": "aa"
+};
