@@ -1,7 +1,7 @@
-/* APP-WRITTEN. Overlay on the generated corpus (data/quotes.js).
-   edits   : { quoteId: { text?, category? } }
-   deletes : [ quoteId, ... ]
-   added   : [ { id, text, category }, ... ]   (ids >= 100000, app-assigned)
-*/
+/* APP-WRITTEN. Overlay on data/quotes.js (edits / deletes / added). */
 window.Wisdom = window.Wisdom || {};
-window.Wisdom.quoteEdits = { "edits": {}, "deletes": [], "added": [] };
+window.Wisdom.quoteEdits = {
+ "edits": {},
+ "deletes": [],
+ "added": []
+};
