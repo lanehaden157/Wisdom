@@ -14,6 +14,14 @@
 .chip.active { background: var(--accent); border-color: var(--accent); color: #F3EEE1; }
 .chip .n { opacity: 0.6; margin-left: 4px; }
 
+/* tag-group colours: Steps / Style / Concept, set via data-group on the chip */
+.chip[data-group="Steps"]   { border-color: var(--tag-steps);   color: var(--tag-steps); }
+.chip[data-group="Style"]   { border-color: var(--tag-style);   color: var(--tag-style); }
+.chip[data-group="Concept"] { border-color: var(--tag-concept); color: var(--tag-concept); }
+.chip[data-group="Steps"].active   { background: var(--tag-steps);   border-color: var(--tag-steps);   color: #F3EEE1; }
+.chip[data-group="Style"].active   { background: var(--tag-style);   border-color: var(--tag-style);   color: #F3EEE1; }
+.chip[data-group="Concept"].active { background: var(--tag-concept); border-color: var(--tag-concept); color: #F3EEE1; }
+
 /* ---------- Card ---------- */
 .card {
   position: relative;
@@ -85,6 +93,9 @@
   cursor: pointer;
 }
 .card .tag-chip.untagged { border-style: dashed; color: var(--ink-soft); }
+.tag-chip[data-group="Steps"]   { border-color: var(--tag-steps);   color: var(--tag-steps); }
+.tag-chip[data-group="Style"]   { border-color: var(--tag-style);   color: var(--tag-style); }
+.tag-chip[data-group="Concept"] { border-color: var(--tag-concept); color: var(--tag-concept); }
 .card .edit-btn {
   flex: none;
   font-family: 'IBM Plex Mono', monospace;
@@ -190,6 +201,9 @@
   color: var(--ink-soft);
   margin: 12px 0 7px;
 }
+.field-label[data-group="Steps"]   { color: var(--tag-steps); }
+.field-label[data-group="Style"]   { color: var(--tag-style); }
+.field-label[data-group="Concept"] { color: var(--tag-concept); }
 .modal-actions {
   margin-top: 18px;
   display: flex;
@@ -377,6 +391,12 @@
 }
 .tagman-row .slug { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; flex: 1; }
 .tagman-row .count { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-soft); }
+.tagman-row[data-group="Steps"]   { border-left: 3px solid var(--tag-steps); }
+.tagman-row[data-group="Style"]   { border-left: 3px solid var(--tag-style); }
+.tagman-row[data-group="Concept"] { border-left: 3px solid var(--tag-concept); }
+.tagman-row[data-group="Steps"]   .slug { color: var(--tag-steps); }
+.tagman-row[data-group="Style"]   .slug { color: var(--tag-style); }
+.tagman-row[data-group="Concept"] .slug { color: var(--tag-concept); }
 .tagman-row select, .tagman-row button {
   font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
   border: 1px solid var(--rule); background: var(--paper); color: var(--ink);

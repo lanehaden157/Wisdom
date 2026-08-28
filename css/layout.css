@@ -120,6 +120,9 @@ details.facet-group summary .active-hint {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+details.facet-group[data-group="Steps"] summary > span:first-child   { color: var(--tag-steps); }
+details.facet-group[data-group="Style"] summary > span:first-child   { color: var(--tag-style); }
+details.facet-group[data-group="Concept"] summary > span:first-child { color: var(--tag-concept); }
 
 /* ---------- Results region ---------- */
 main {

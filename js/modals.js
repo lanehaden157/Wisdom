@@ -44,11 +44,14 @@ window.Wisdom.Modals = (function () {
       order.forEach(function (g) {
         var slugs = (byGroup[g] || []).sort();
         if (!slugs.length) return;
-        container.appendChild(el("span", "field-label", g));
+        var lbl = el("span", "field-label", g);
+        lbl.setAttribute("data-group", g);
+        container.appendChild(lbl);
         var row = el("div", "chip-row");
         slugs.forEach(function (s) {
           var chip = el("button", "chip" + (chosenSet.has(s) ? " active" : ""), bySlug[s].label);
           chip.type = "button";
+          chip.setAttribute("data-group", g);
           chip.addEventListener("click", function () {
             if (chosenSet.has(s)) chosenSet.delete(s); else chosenSet.add(s);
             chip.classList.toggle("active");
@@ -67,8 +70,11 @@ window.Wisdom.Modals = (function () {
       var grp = document.createElement("select");
       grp.className = "cfg-input";
       grp.style.flex = "0 0 40%";
-      (Store.tagsMap().order || ["Theme"]).forEach(function (g) {
-        var o = document.createElement("option"); o.value = g; o.textContent = g; grp.appendChild(o);
+      var defaultGroup = "Concept";
+      (Store.tagsMap().order || [defaultGroup]).forEach(function (g) {
+        var o = document.createElement("option"); o.value = g; o.textContent = g;
+        if (g === defaultGroup) o.selected = true;
+        grp.appendChild(o);
       });
       var add = el("button", null, "+ create");
       add.type = "button";
@@ -187,6 +193,7 @@ window.Wisdom.Modals = (function () {
       pick.tags.forEach(function (s) {
         var ch = el("button", "tag-chip", tm.tags[s] ? tm.tags[s].label : s);
         ch.type = "button";
+        if (tm.tags[s]) ch.setAttribute("data-group", tm.tags[s].group);
         ch.addEventListener("click", function () {
           ov.classList.add("hidden");
           W.UI.state.selectedTags.clear(); W.UI.state.selectedTags.add(s);
