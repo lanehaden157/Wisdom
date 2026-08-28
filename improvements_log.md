@@ -45,3 +45,37 @@ Append-only. Concrete changes made to the project. Check before redoing work.
   clean reload with no localStorage.
 - NOT done: queue keyboard shortcuts (1–9 / space). `text.txt`, `P$P.txt` still
   at repo root (superseded by `source/`).
+
+## 2026-08-27 — tag taxonomy repopulated, colour-coded
+- `data/tags.js`: 86 tags, 3 groups, `order: ["Steps", "Style", "Concept"]`.
+  - **Steps** (13): `step-01`..`step-12` (zero-padded slugs so the picker's
+    alphabetical sort stays numeric — labels are plain "Step 1".."Step 12"),
+    `traditions`.
+  - **Style** (12): old Form set minus `poem` (redundant with the tab) —
+    aphorism, humor, question, acronym, passage, metaphor, process, prayer —
+    plus 4 new: slogan, story, paradox, list.
+  - **Concept** (61): old Theme set (39 — dropped `self-acceptance`, renamed
+    `self-deception`→`delusion`) + non-step Program tags (7: sponsorship,
+    meetings, service, relapse, newcomer, fellowship, unity — `amends`
+    dropped, redundant with Step 9) + `prayer-concept` (labelled "Prayer",
+    distinct slug from Style's `prayer` so both can exist) + 14 new: anger,
+    self-will, letting-go, loneliness, self-pity, expectations, serenity,
+    present-moment, perfectionism, relationships, obsession, rock-bottom,
+    purpose, mortality.
+  - `assignments.js` left empty — clean slate stands, tag by hand as before.
+- Colour tokens in `css/tokens.css`: `--tag-steps` (oxblood, reuses
+  `--origin-religious`), `--tag-style` (brass, reuses `--origin-misc`),
+  `--tag-concept` (pine, reuses `--origin-aa`) — same three-colour family as
+  origin, applied via `data-group="Steps|Style|Concept"` on chip elements.
+- Coloured every place tags render: facet nav chips + group headers
+  (`render.js`), card-front tag chips (`render.js`), edit-modal/queue tag
+  picker chips + group labels (`modals.js` shared `tagPicker`), draw-overlay
+  tag chips (`modals.js`), queue "recent" chips (`tagger.js`), tag-manager
+  rows — coloured left border + label text (`tagger.js`).
+- New-tag creation in the shared picker now defaults its group `<select>` to
+  Concept (was whichever group happened to sort first).
+- Verified in browser: all 86 tags present and correctly grouped/ordered in
+  the edit modal, Steps sort numerically 1–12, active-chip fill matches group
+  colour, card-front chips inherit group colour after save, facet nav shows
+  only groups with ≥1 tagged card (existing behaviour, unchanged), tag
+  manager rows show correct colour + border per tag. `validate.py` passes.

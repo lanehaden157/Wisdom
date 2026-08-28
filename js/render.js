@@ -86,6 +86,7 @@ window.Wisdom.UI = (function () {
       var slugs = groups[g];
       if (!slugs || !slugs.length) return;
       var det = el("details", "facet-group");
+      det.setAttribute("data-group", g);
       det.open = !!facetOpen[g];
       det.addEventListener("toggle", function () { facetOpen[g] = det.open; });
       var sum = el("summary");
@@ -99,6 +100,7 @@ window.Wisdom.UI = (function () {
         var t = tm.tags[slug];
         var chip = el("button", "chip" + (state.selectedTags.has(slug) ? " active" : ""));
         chip.type = "button";
+        chip.setAttribute("data-group", g);
         chip.innerHTML = (t ? t.label : slug) + "<span class='n'>" + counts[slug] + "</span>";
         chip.addEventListener("click", function () {
           if (state.selectedTags.has(slug)) state.selectedTags.delete(slug);
@@ -183,6 +185,7 @@ window.Wisdom.UI = (function () {
           var t = tm.tags[slug];
           var chip = el("button", "tag-chip", t ? t.label : slug);
           chip.type = "button";
+          if (t) chip.setAttribute("data-group", t.group);
           chip.addEventListener("click", function () {
             state.selectedTags.clear(); state.selectedTags.add(slug);
             window.scrollTo({ top: 0, behavior: "smooth" });

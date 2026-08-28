@@ -89,6 +89,7 @@ window.Wisdom.Tagger = (function () {
         var tm = Store.tagsMap().tags[s];
         var chip = el("button", "chip" + (chosen.has(s) ? " active" : ""), tm ? tm.label : s);
         chip.type = "button";
+        if (tm) chip.setAttribute("data-group", tm.group);
         chip.addEventListener("click", function () {
           var cur = Store.toggleTag(live.id, s);
           chosen = new Set(cur); pushRecent(s); render();
@@ -139,6 +140,7 @@ window.Wisdom.Tagger = (function () {
       if (!slugs.length) body.appendChild(el("p", "modal-hint", "No tags yet — create them as you tag cards."));
       slugs.forEach(function (s) {
         var row = el("div", "tagman-row");
+        row.setAttribute("data-group", tm.tags[s].group);
         var name = el("span", "slug", tm.tags[s].label);
         name.title = s;
         row.appendChild(name);

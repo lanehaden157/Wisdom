@@ -14,6 +14,11 @@
   --origin-aa:        #3E5C50;   /* muted pine */
   --origin-religious: #7A2E27;   /* the house oxblood */
   --origin-misc:      #B08427;   /* aged brass */
+
+  /* tag-group colours - same three-colour family as origin, applied to chips */
+  --tag-steps:   #7A2E27;   /* oxblood - Steps 1-12 + Traditions */
+  --tag-style:   #B08427;   /* brass - aphorism, humor, slogan… */
+  --tag-concept: #3E5C50;   /* pine - love, humility, fear… */
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
