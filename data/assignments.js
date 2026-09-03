@@ -10,5 +10,22 @@ window.Wisdom.assignments = {
   "the-disease",
   "rock-bottom",
   "unmanageability"
+ ],
+ "100000": [
+  "step-04",
+  "step-06",
+  "step-07",
+  "step-09",
+  "step-10",
+  "step-01",
+  "step-03",
+  "aphorism",
+  "change",
+  "fear",
+  "growth",
+  "open-mindedness",
+  "self-will",
+  "surrender",
+  "willingness"
  ]
 };
