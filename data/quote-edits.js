@@ -18,6 +18,11 @@ window.Wisdom.quoteEdits = {
    "id": 100002,
    "text": "We agnostics could be renamed, “How’s it workin’ out for ya?”",
    "category": "quote"
+  },
+  {
+   "id": 100003,
+   "text": "If you’d killed yourself you’d’ve killed the wrong guy",
+   "category": "quote"
   }
  ]
 };
