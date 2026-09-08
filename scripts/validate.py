@@ -6,9 +6,11 @@ Pre-commit guard for the Wisdom data files. Run from the repo root:
 
 Exits non-zero (and prints what failed) if:
   - data/quotes.js is missing or malformed
-  - any quote id is duplicated
+  - any quote id is duplicated (corpus or a quote-edits.js `added` card)
   - any category is not quote | poem | prayer
-  - data/assignments.js or data/origins.js references an id not in quotes.js
+  - a quote-edits.js `added` id collides with the generated corpus
+  - data/assignments.js or data/origins.js references an unknown id
+    (corpus + `added` cards both count)
   - an origin value is not aa | religious | misc
   - the owner's name or an explicit sobriety-date pattern appears in quotes.js
 """
@@ -64,6 +66,20 @@ def main():
         for pat in PII_PATTERNS:
             if pat.search(r["text"]):
                 fail(f"id {r['id']}: matches PII pattern /{pat.pattern}/ -> {r['text'][:60]!r}")
+
+    # app-created cards (data/quote-edits.js `added`) are real ids too — a tag
+    # or origin may legitimately point at one.
+    qedits = load_global(ROOT / "data" / "quote-edits.js", "window.Wisdom.quoteEdits",
+                         {"edits": {}, "deletes": [], "added": []})
+    for r in qedits.get("added", []):
+        if r["id"] in ids:
+            fail(f"quote-edits.js: added id {r['id']} collides with quotes.js")
+        ids.add(r["id"])
+        if r.get("category") not in CATEGORIES:
+            fail(f"quote-edits.js: added id {r['id']} bad category {r.get('category')!r}")
+        for pat in PII_PATTERNS:
+            if pat.search(r.get("text", "")):
+                fail(f"quote-edits.js: added id {r['id']} matches PII /{pat.pattern}/")
 
     assignments = load_global(ROOT / "data" / "assignments.js", "window.Wisdom.assignments", {})
     tags = load_global(ROOT / "data" / "tags.js", "window.Wisdom.tags", {"tags": {}})

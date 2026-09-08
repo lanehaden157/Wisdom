@@ -11,7 +11,7 @@ window.Wisdom.assignments = {
   "rock-bottom",
   "unmanageability"
  ],
- "100000": [
+ "935": [
   "step-04",
   "step-06",
   "step-07",
