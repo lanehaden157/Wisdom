@@ -55,10 +55,29 @@ byte-identical, validate OK.
 - After `adoptSaved` (simulated publish): badge gone, note gone,
   `pending().any === false`. A later add correctly re-flags pending.
 
-## Not done / open
+## Renumbering the 4 live cards (done, second commit)
 
-- **Needs commit + push to go live.** Lane asked for the fix; per house rules I
-  didn't push. All changes are staged in the working tree.
+Push #1 rebased onto 5 site-published saves that were on origin but not local —
+tagging work plus the first 4 app-created cards, already saved at ids
+**100000-100003** (card 100000 had 15 tags + an `aa` origin).
+
+Lane chose to renumber them. Changed by hand:
+- `data/quote-edits.js`: the 4 `id` values → 935, 936, 937, 938.
+- `data/assignments.js`: key `"100000"` → `"935"` (tags unchanged).
+- `data/origins.js`: key `"100000"` → `"935"`.
+- `data/stamp.js`: `1788884637166` → `1788894147242` — bumping it means any
+  device still holding localStorage under the old stamp loads clean from the
+  renumbered files instead of resurrecting the 100000-series ids.
+
+`scripts/validate.py` had a latent bug this exposed: it only knew corpus ids, so
+a tag/origin on any app-created card failed validation (it had been silently
+failing on card 100000). It now folds `quote-edits.js` `added` ids into the
+known set and checks them for collision / bad category / PII.
+
+Verified in a fresh browser tab: 938 cards, Quotes tab 913, no "Unsaved" nag,
+card 935 keeps its 15 tags + `aa` origin, ids 935-938 unique, next new card 939.
+
+## Not done / open
 - The ~10 min Pages cache window still means "Save, then wait a few minutes or
   hard-refresh" for the *public* link. In-tab it's instant after Save.
 - If Lane has no ⚙ GitHub connection set, added cards persist in localStorage

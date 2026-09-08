@@ -2,7 +2,7 @@ build_data.py
   quotes.js : 934 cards  poem=10  prayer=15  quote=909
   poems/prayers: 14 matched+moved, 11 new
   appended new quotes: 2
-  id ledger: 934 entries, next id 935
+  id ledger: 934 entries, next id 939
 
   new   #922     poem               I stand by the door.
   new   #923     poem               'Twas battered and scarred,

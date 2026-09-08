@@ -2,6 +2,23 @@
 
 Append-only. Concrete changes made to the project. Check before redoing work.
 
+## 2026-09-08 (3) — renumbered the 4 live app cards + validator fix
+- Rebased onto 5 site-published saves that were on origin but not local (tagging
+  work + the first 4 app-created cards). Resolved the `quote-edits.js` header
+  conflict keeping the fuller comment.
+- Renumbered the 4 existing app cards **100000-100003 -> 935-938** at Lane's
+  request: `data/quote-edits.js` ids, plus the `100000` -> `935` key in
+  `assignments.js` (15 tags) and `origins.js` (`aa`). Bumped `data/stamp.js`
+  (1788884637166 -> 1788894147242) so any device with stale localStorage under
+  the old stamp loads clean from the renumbered files.
+- `scripts/validate.py` — was checking assignment/origin ids against `quotes.js`
+  only, so it rejected any tag/origin on an app-created card (it had been
+  silently failing on the 100000 card). Now folds `quote-edits.js` `added` ids
+  into the known-id set, checks them for corpus collision + bad category + PII.
+- Verified in a fresh tab: 938 cards, Quotes tab 913, no "Unsaved" nag, card 935
+  carries its 15 tags + `aa` origin, ids 935-938 unique, next new card = 939.
+  `validate.py` OK, `build_data.py` output unchanged.
+
 ## 2026-09-08 (2)
 - **Committed the 09-08 (1) `store.js` fix** — it had been left uncommitted, so the
   deployed site + phone still ran the pre-fix code. That alone was why "unfiled after
