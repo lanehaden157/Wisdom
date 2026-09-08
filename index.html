@@ -7,9 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&amp;family=Inter:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/tokens.css?v=20260908">
+<link rel="stylesheet" href="css/layout.css?v=20260908">
+<link rel="stylesheet" href="css/components.css?v=20260908">
 <style>
   .subbar { max-width: 1180px; margin: 0 auto; padding: 8px 14px 0; text-align: right; }
   .subbar button {
@@ -117,7 +117,10 @@
 
 <div class="save-status hidden" id="saveStatus"></div>
 
-<!-- data (generated + app-written; plain scripts so file:// works) -->
+<!-- data (generated + app-written; plain scripts so file:// works).
+     NO ?v= here on purpose: Save rewrites these files out-of-band, so they
+     must revalidate normally — a frozen query string would serve stale data
+     right after a publish. -->
 <script src="data/quotes.js"></script>
 <script src="data/stamp.js"></script>
 <script src="data/tags.js"></script>
@@ -126,12 +129,12 @@
 <script src="data/quote-edits.js"></script>
 
 <!-- app -->
-<script src="js/config.js"></script>
-<script src="js/store.js"></script>
-<script src="js/github.js"></script>
-<script src="js/render.js"></script>
-<script src="js/modals.js"></script>
-<script src="js/tagger.js"></script>
-<script src="js/app.js"></script>
+<script src="js/config.js?v=20260908"></script>
+<script src="js/store.js?v=20260908"></script>
+<script src="js/github.js?v=20260908"></script>
+<script src="js/render.js?v=20260908"></script>
+<script src="js/modals.js?v=20260908"></script>
+<script src="js/tagger.js?v=20260908"></script>
+<script src="js/app.js?v=20260908"></script>
 </body>
 </html>

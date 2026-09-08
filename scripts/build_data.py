@@ -36,6 +36,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "data" / "archive" / "quotes-v1.json"
+QEDITS = ROOT / "data" / "quote-edits.js"
 PP_RAW = ROOT / "source" / "poems-prayers-raw.txt"
 NEW_QUOTES = ROOT / "source" / "patches" / "new-quotes.json"
 IDS = ROOT / "source" / "ids.json"
@@ -119,7 +120,20 @@ def main():
         ledger = json.loads(IDS.read_text(encoding="utf-8")).get("hash_to_id", {})
     for c in corpus:
         ledger.setdefault(text_hash(c["quote"]), c["id"])
-    next_id = max(list(ledger.values()) + [c["id"] for c in corpus]) + 1
+
+    # data/quote-edits.js is app-owned (never written here) but its `added`
+    # cards share this one id sequence — reserve their ids so a rebuilt corpus
+    # can never hand the same id to a different quote.
+    added_ids = []
+    if QEDITS.exists():
+        m = re.search(r"\.quoteEdits\s*=\s*(\{.*\})\s*;", QEDITS.read_text(encoding="utf-8"), re.S)
+        if m:
+            try:
+                added_ids = [a["id"] for a in json.loads(m.group(1)).get("added", [])]
+            except (ValueError, KeyError, TypeError):
+                added_ids = []
+
+    next_id = max(list(ledger.values()) + [c["id"] for c in corpus] + added_ids) + 1
 
     def id_for(text):
         nonlocal next_id
