@@ -1,8 +1,4 @@
-/* APP-WRITTEN. Overlay on the generated corpus (data/quotes.js).
-   edits   : { quoteId: { text?, category? } }
-   deletes : [ quoteId, ... ]
-   added   : [ { id, text, category }, ... ]   (ids continue past the corpus)
-*/
+/* APP-WRITTEN. Overlay on data/quotes.js (edits / deletes / added). */
 window.Wisdom = window.Wisdom || {};
 window.Wisdom.quoteEdits = {
  "edits": {},
@@ -26,6 +22,11 @@ window.Wisdom.quoteEdits = {
   {
    "id": 938,
    "text": "If you’d killed yourself you’d’ve killed the wrong guy",
+   "category": "quote"
+  },
+  {
+   "id": 939,
+   "text": "I didn’t believe in God, but I believe in alcoholism",
    "category": "quote"
   }
  ]
