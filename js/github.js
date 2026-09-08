@@ -103,7 +103,8 @@ window.Wisdom.Github = (function () {
     }).then(function () {
       Store.adoptSaved(newStamp);
       W.stamp = newStamp;
-      return "Saved ✓ — the site link updates in a minute or two";
+      return "Saved ✓ — live now on this device. The public site link can " +
+             "take a few minutes; a hard refresh (or reopening the tab) gets it sooner.";
     });
   }
 

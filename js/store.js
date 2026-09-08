@@ -47,6 +47,8 @@ window.Wisdom.Store = (function () {
   function cards() {
     var del = {};
     work.qedits.deletes.forEach(function (id) { del[id] = 1; });
+    var savedAddedIds = {};
+    saved.qedits.added.forEach(function (a) { savedAddedIds[a.id] = 1; });
     var out = [];
     (W.quotes || []).forEach(function (q) {
       if (del[q.id]) return;
@@ -59,7 +61,7 @@ window.Wisdom.Store = (function () {
       });
     });
     work.qedits.added.forEach(function (a) {
-      if (!del[a.id]) out.push({ id: a.id, text: a.text, category: a.category, added: true });
+      if (!del[a.id]) out.push({ id: a.id, text: a.text, category: a.category, added: !savedAddedIds[a.id] });
     });
     out.forEach(function (c) {
       c.tags = (work.assign[c.id] || []).slice();
@@ -81,9 +83,17 @@ window.Wisdom.Store = (function () {
     else work.qedits.edits[id] = { text: text, category: category };
     persist("qedits");
   }
+  function nextId() {
+    /* continue the single id sequence: one past the highest id anywhere —
+       the generated corpus, plus any app-created cards (saved or still local). */
+    var mx = 0;
+    (W.quotes || []).forEach(function (q) { if (q.id > mx) mx = q.id; });
+    saved.qedits.added.forEach(function (a) { if (a.id > mx) mx = a.id; });
+    work.qedits.added.forEach(function (a) { if (a.id > mx) mx = a.id; });
+    return mx + 1;
+  }
   function addCard(text, category) {
-    var maxAdded = work.qedits.added.reduce(function (m, a) { return Math.max(m, a.id); }, C.addedIdBase - 1);
-    var id = maxAdded + 1;
+    var id = nextId();
     work.qedits.added.push({ id: id, text: text, category: category });
     persist("qedits");
     return id;
@@ -176,13 +186,27 @@ window.Wisdom.Store = (function () {
 
   /* ---------- pending / save plumbing ---------- */
   function pending() {
+    /* compare the working copy to what's actually published — a card that has
+       already been saved lives on in work.qedits forever and must NOT keep
+       showing as unsaved (that was the "prompted to Save on every load" bug). */
+    var qe = JSON.stringify(work.qedits) !== JSON.stringify(saved.qedits);
+    var a  = JSON.stringify(work.assign)  !== JSON.stringify(saved.assign);
+    var o  = JSON.stringify(work.origins) !== JSON.stringify(saved.origins);
+    var t  = JSON.stringify(work.tags)    !== JSON.stringify(saved.tags);
+
     var q = 0;
-    q += Object.keys(work.qedits.edits).length + work.qedits.deletes.length + work.qedits.added.length;
-    var a = JSON.stringify(work.assign) !== JSON.stringify(saved.assign);
-    var o = JSON.stringify(work.origins) !== JSON.stringify(saved.origins);
-    var t = JSON.stringify(work.tags) !== JSON.stringify(saved.tags);
-    return { quotes: q, assign: a, origins: o, tags: t,
-             any: q > 0 || a || o || t };
+    if (qe) {
+      var sEd = saved.qedits.edits || {};
+      var sDel = saved.qedits.deletes || [];
+      var sAdd = {};
+      (saved.qedits.added || []).forEach(function (x) { sAdd[x.id] = JSON.stringify(x); });
+      Object.keys(work.qedits.edits).forEach(function (id) {
+        if (JSON.stringify(work.qedits.edits[id]) !== JSON.stringify(sEd[id])) q++;
+      });
+      work.qedits.deletes.forEach(function (id) { if (sDel.indexOf(id) === -1) q++; });
+      work.qedits.added.forEach(function (x) { if (sAdd[x.id] !== JSON.stringify(x)) q++; });
+    }
+    return { quotes: q, assign: a, origins: o, tags: t, any: qe || a || o || t };
   }
 
   var HEADERS = {

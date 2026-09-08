@@ -2,6 +2,45 @@
 
 Append-only. Concrete changes made to the project. Check before redoing work.
 
+## 2026-09-08 (2)
+- **Committed the 09-08 (1) `store.js` fix** — it had been left uncommitted, so the
+  deployed site + phone still ran the pre-fix code. That alone was why "unfiled after
+  saving" persisted.
+- `js/store.js` `pending()` rewritten — was `q += edits.length + deletes.length +
+  added.length` (raw counts), so any card ever added/edited/deleted kept `any: true`
+  forever, i.e. the "Unsaved — hit Save" nag on *every* page load even right after a
+  clean Save. Now diffs `work.qedits` vs `saved.qedits` (JSON compare), like the
+  assign/origins/tags checks already did; `quotes` count is the real per-item delta.
+- `js/store.js` `addCard()` → new `nextId()` — app-created cards now take the id one
+  past the highest live id anywhere (corpus + saved added + local added), so they run
+  935, 936, 937… instead of starting at `config.addedIdBase` (100000). `addedIdBase`
+  kept in config.js as a dead fallback only.
+- `scripts/build_data.py` — now reads `data/quote-edits.js` and folds its `added` ids
+  into `next_id`, so a corpus rebuild can never hand an app-created id to a different
+  quote. Output byte-identical today (added:[] empty); `validate.py` passes.
+- `index.html` — `?v=20260908` on the css/ and js/ tags (NOT the data/ tags — those
+  are rewritten by Save and must revalidate). Bump the string when shipping code so
+  browsers/phones don't run stale modules. This is the other half of "the fix didn't
+  take": GitHub Pages caches assets ~10 min.
+- `js/github.js` — Save success toast now says the public link can lag a few minutes
+  and a hard refresh gets it sooner (Pages cache, not a bug).
+- Verified in the preview browser: new card = id 935; "Unsaved: 1 card" + "unfiled"
+  badge show while pending; after a simulated publish (`adoptSaved`) both clear and
+  `pending().any` is false; count reaches 935 total / Quotes 910. Second/third adds →
+  936 / 937.
+
+## 2026-09-08
+- Fixed `Store.cards()` in `js/store.js` — cards were incorrectly marked `added: true`
+  even after being successfully saved to published files. The `added` flag is now only
+  true for cards in `work.qedits.added` that are NOT yet in `saved.qedits.added`.
+  This fixes the "remain unfiled after saving" issue: cards only show "unfiled" badge
+  while actually unsaved.
+- Verified end-to-end Save flow: publish() chains PUTs correctly, adoptSaved() properly
+  clears old localStorage namespace after successful save, and stamp update prevents
+  stale data bleed on future reloads.
+- Tested: adding a card increments count (909→910), card appears as unsaved until Save,
+  the "Unsaved: X card(s)" message only appears when there are truly pending changes.
+
 ## 2026-08-26
 - Added `CLAUDE.md` — project context, current state, target architecture,
   invariants, phased plan summary.
