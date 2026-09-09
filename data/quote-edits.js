@@ -38,6 +38,11 @@ window.Wisdom.quoteEdits = {
    "id": 941,
    "text": "God please put the love in my heart and the words in my mouth",
    "category": "prayer"
+  },
+  {
+   "id": 942,
+   "text": "Doubt the doubt",
+   "category": "quote"
   }
  ]
 };
