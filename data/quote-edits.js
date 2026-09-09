@@ -28,6 +28,11 @@ window.Wisdom.quoteEdits = {
    "id": 939,
    "text": "I didn’t believe in God, but I believe in alcoholism",
    "category": "quote"
+  },
+  {
+   "id": 940,
+   "text": "God reliance lies in the unknown",
+   "category": "quote"
   }
  ]
 };
