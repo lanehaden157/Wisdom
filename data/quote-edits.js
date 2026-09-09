@@ -33,6 +33,11 @@ window.Wisdom.quoteEdits = {
    "id": 940,
    "text": "God reliance lies in the unknown",
    "category": "quote"
+  },
+  {
+   "id": 941,
+   "text": "God please put the love in my heart and the words in my mouth",
+   "category": "prayer"
   }
  ]
 };
