@@ -43,6 +43,11 @@ window.Wisdom.quoteEdits = {
    "id": 942,
    "text": "Doubt the doubt",
    "category": "quote"
+  },
+  {
+   "id": 943,
+   "text": "When my will and God’s will align, it ALWAYS includes YOU",
+   "category": "quote"
   }
  ]
 };
