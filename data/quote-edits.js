@@ -48,6 +48,11 @@ window.Wisdom.quoteEdits = {
    "id": 943,
    "text": "When my will and God’s will align, it ALWAYS includes YOU",
    "category": "quote"
+  },
+  {
+   "id": 944,
+   "text": "Intimacy - In to me you see",
+   "category": "quote"
   }
  ]
 };
