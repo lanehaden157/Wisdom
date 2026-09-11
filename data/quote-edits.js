@@ -63,6 +63,16 @@ window.Wisdom.quoteEdits = {
    "id": 946,
    "text": "You can know the law, but I’d rather know the judge",
    "category": "quote"
+  },
+  {
+   "id": 947,
+   "text": "12 symptoms of a spiritual awakening:\n\n1. An increased tendency to let things happen rather than trying to force them.\n\n2. Frequent attacks of smiling and seeing humor in situations.\n\n3. A growing sense of being connected \n\n4. Acquiring an attitude of gratitude \n\n5. An increased tendency to act spontaneously rather than from fear or guilt\n\n6. An ability to live in the now and appreciate each moment\n\n7. A loss of the ability to worry\n\n8. A lost interest in conflict\n\n9. A loss in the ability to read minds\n\n10. A loss of interest in judging others and gossip\n\n11. A loss of interest in judging oneself\n\n12. Acquiring the ability to love without expectation",
+   "category": "quote"
+  },
+  {
+   "id": 948,
+   "text": "Faith and fear both require me believing in something I can’t see",
+   "category": "quote"
   }
  ]
 };
