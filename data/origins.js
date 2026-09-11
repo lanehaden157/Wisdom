@@ -2,5 +2,6 @@
 window.Wisdom = window.Wisdom || {};
 window.Wisdom.origins = {
  "1": "aa",
- "935": "aa"
+ "935": "aa",
+ "945": "misc"
 };
