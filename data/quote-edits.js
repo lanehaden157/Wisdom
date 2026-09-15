@@ -73,6 +73,11 @@ window.Wisdom.quoteEdits = {
    "id": 948,
    "text": "Faith and fear both require me believing in something I can’t see",
    "category": "quote"
+  },
+  {
+   "id": 949,
+   "text": "Fear comes to let me know I’m driving again",
+   "category": "quote"
   }
  ]
 };
