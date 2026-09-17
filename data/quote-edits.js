@@ -78,6 +78,11 @@ window.Wisdom.quoteEdits = {
    "id": 949,
    "text": "Fear comes to let me know I’m driving again",
    "category": "quote"
+  },
+  {
+   "id": 950,
+   "text": "Too many years and not enough days",
+   "category": "quote"
   }
  ]
 };
