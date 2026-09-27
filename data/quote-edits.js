@@ -83,6 +83,11 @@ window.Wisdom.quoteEdits = {
    "id": 950,
    "text": "Too many years and not enough days",
    "category": "quote"
+  },
+  {
+   "id": 951,
+   "text": "I don’t like it, but I’m grateful for it",
+   "category": "quote"
   }
  ]
 };
