@@ -93,6 +93,11 @@ window.Wisdom.quoteEdits = {
    "id": 952,
    "text": "Face Everything And Recover",
    "category": "quote"
+  },
+  {
+   "id": 953,
+   "text": "I need the heat on and the windows open at the same time",
+   "category": "quote"
   }
  ]
 };
