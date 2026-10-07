@@ -88,6 +88,11 @@ window.Wisdom.quoteEdits = {
    "id": 951,
    "text": "I don’t like it, but I’m grateful for it",
    "category": "quote"
+  },
+  {
+   "id": 952,
+   "text": "Face Everything And Recover",
+   "category": "quote"
   }
  ]
 };
