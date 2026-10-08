@@ -6,8 +6,9 @@ window.Wisdom.UI = (function () {
   var Store = W.Store;
   var el = W.util.el, cardNo = W.util.cardNo;
 
-  var state = { category: "quote", query: "", selectedTags: new Set(), tagMode: "and" };
+  var state = { category: "quote", query: "", selectedTags: new Set(), tagMode: "and", similarTo: null };
   var facetOpen = {};
+  var PAGE = 60, shown = PAGE, lastSig = "";   /* render a page at a time: ~900 cards at once froze phones */
 
   function isReading(cat) { return C.readingCategories.indexOf(cat) !== -1; }
 
@@ -15,8 +16,6 @@ window.Wisdom.UI = (function () {
     return cards.filter(function (c) { return c.category === state.category; });
   }
   function matches(c) {
-    var q = state.query.trim().toLowerCase();
-    if (q && c.text.toLowerCase().indexOf(q) === -1 && c.kw.toLowerCase().indexOf(q) === -1) return false;
     if (state.selectedTags.size) {
       if (state.selectedTags.has("__untagged__")) return c.tags.length === 0;
       var picked = Array.from(state.selectedTags);
@@ -40,6 +39,7 @@ window.Wisdom.UI = (function () {
       b.addEventListener("click", function () {
         if (state.category === cat) return;
         state.category = cat;
+        state.similarTo = null;
         state.selectedTags.clear();
         renderAll();
       });
@@ -100,6 +100,7 @@ window.Wisdom.UI = (function () {
         chip.setAttribute("data-group", g);
         chip.appendChild(W.util.withCount(t ? t.label : slug, counts[slug]));
         chip.addEventListener("click", function () {
+          state.similarTo = null;
           if (state.selectedTags.has(slug)) state.selectedTags.delete(slug);
           else state.selectedTags.add(slug);
           renderAll();
@@ -140,6 +141,19 @@ window.Wisdom.UI = (function () {
     var reading = isReading(state.category);
     grid.className = "grid" + (reading ? " reading" : "");
     var filtered = viewCards.filter(matches);
+    var q = state.query.trim(), approx = false, simCard = null;
+    var tagLabel = function (slug) { var t = Store.tagsMap().tags[slug]; return t ? t.label : slug; };
+    if (state.similarTo != null) {
+      simCard = viewCards.filter(function (c) { return c.id === state.similarTo; })[0] || null;
+      if (!simCard) state.similarTo = null;
+    }
+    if (simCard) {
+      filtered = [simCard].concat(W.Search.similar(simCard, viewCards, 12, tagLabel).map(function (h) { return h.card; }));
+    } else if (q) {
+      var r = W.Search.run(filtered, q, tagLabel);
+      filtered = r.hits.map(function (h) { return h.card; });
+      approx = r.approx;
+    }
 
     meta.innerHTML = "";
     var desc = [];
@@ -147,10 +161,11 @@ window.Wisdom.UI = (function () {
       desc.push(state.selectedTags.has("__untagged__") ? "untagged"
         : "tagged " + Array.from(state.selectedTags).join(state.tagMode === "or" ? " or " : " + "));
     }
-    if (state.query.trim()) desc.push('matching "' + state.query.trim() + '"');
-    meta.appendChild(el("span", null,
-      filtered.length + " of " + viewCards.length + " " + C.categoryLabel[state.category].toLowerCase() +
-      (desc.length ? " — " + desc.join(", ") : "")));
+    if (q && !simCard) desc.push((approx ? "closest to " : "matching ") + '"' + q + '"');
+    meta.appendChild(el("span", null, simCard
+      ? "More like " + cardNo(simCard.id) + " — " + (filtered.length - 1) + " found"
+      : filtered.length + " of " + viewCards.length + " " + C.categoryLabel[state.category].toLowerCase() +
+        (desc.length ? " — " + desc.join(", ") : "")));
     var multi = state.selectedTags.size > 1 && !state.selectedTags.has("__untagged__");
     if (multi) {
       var mm = el("span", "match-mode");
@@ -161,10 +176,10 @@ window.Wisdom.UI = (function () {
       mm.appendChild(host);
       meta.appendChild(mm);
     }
-    if (state.selectedTags.size || state.query.trim()) {
+    if (state.selectedTags.size || q || simCard) {
       var clr = el("button", "ghost", "Clear");
       clr.addEventListener("click", function () {
-        state.query = ""; state.selectedTags.clear();
+        state.query = ""; state.selectedTags.clear(); state.similarTo = null;
         document.getElementById("search").value = "";
         renderAll();
       });
@@ -176,8 +191,10 @@ window.Wisdom.UI = (function () {
       grid.appendChild(el("div", "empty-state", "Nothing filed under that yet."));
       return;
     }
+    var sig = [state.category, state.query, Array.from(state.selectedTags).join(","), state.tagMode, state.similarTo].join("|");
+    if (sig !== lastSig) { lastSig = sig; shown = PAGE; }
     var tm = Store.tagsMap();
-    filtered.forEach(function (c) {
+    filtered.slice(0, shown).forEach(function (c) {
       var card = el("div", "card" + (reading ? " reading " + c.category : ""));
       if (c.origin) card.setAttribute("data-origin", c.origin);
       if (c.edited || c.added) {
@@ -194,6 +211,7 @@ window.Wisdom.UI = (function () {
           chip.type = "button";
           if (t) chip.setAttribute("data-group", t.group);
           chip.addEventListener("click", function () {
+            state.similarTo = null;
             state.selectedTags.clear(); state.selectedTags.add(slug);
             window.scrollTo({ top: 0, behavior: "smooth" });
             renderAll();
@@ -204,6 +222,16 @@ window.Wisdom.UI = (function () {
         tags.appendChild(el("span", "tag-chip untagged owner-only", "untagged"));
       }
       foot.appendChild(tags);
+      var like = el("button", "like-btn", "like this");
+      like.type = "button";
+      like.setAttribute("aria-label", "like this, " + cardNo(c.id));
+      like.addEventListener("click", function () {
+        state.similarTo = c.id; state.query = ""; state.selectedTags.clear();
+        document.getElementById("search").value = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        renderAll();
+      });
+      foot.appendChild(like);
       var edit = el("button", "edit-btn owner-only", "edit");
       edit.setAttribute("aria-label", "Edit " + cardNo(c.id));
       edit.type = "button";
@@ -212,6 +240,12 @@ window.Wisdom.UI = (function () {
       card.appendChild(foot);
       grid.appendChild(card);
     });
+    if (filtered.length > shown) {
+      var more = el("button", "show-more", "Show more (" + (filtered.length - shown) + " left)");
+      more.type = "button";
+      more.addEventListener("click", function () { shown += PAGE * 2; renderAll(); });
+      grid.appendChild(more);
+    }
   }
 
   function renderPending() {

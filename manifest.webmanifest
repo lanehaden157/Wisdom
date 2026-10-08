@@ -1,0 +1,15 @@
+{
+  "name": "Wisdom — A Working Index",
+  "short_name": "Wisdom",
+  "description": "A personal card catalog of recovery quotes, poems and prayers.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3EEE1",
+  "theme_color": "#F3EEE1",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

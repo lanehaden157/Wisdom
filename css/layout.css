@@ -110,7 +110,7 @@
   position: relative;
   top: 1px;
 }
-.tab .n { opacity: 0.55; margin-left: 6px; letter-spacing: 0; }
+.tab .n { opacity: 0.8; margin-left: 6px; letter-spacing: 0; }
 .tab[aria-selected="true"] {
   background: var(--paper);
   color: var(--ink);

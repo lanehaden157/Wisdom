@@ -100,7 +100,8 @@
 .tag-chip[data-group="Steps"]   { border-color: var(--tag-steps);   color: var(--tag-steps); }
 .tag-chip[data-group="Style"]   { border-color: var(--tag-style);   color: var(--tag-style); }
 .tag-chip[data-group="Concept"] { border-color: var(--tag-concept); color: var(--tag-concept); }
-.card .edit-btn {
+.card .edit-btn,
+.card .like-btn {
   flex: none;
   align-self: flex-end;
   margin: -6px -8px -8px 0;
@@ -441,3 +442,18 @@ details.picker-all > summary::-webkit-details-marker { display: none; }
 details.picker-all > summary::before { content: "›"; display: inline-block; margin-right: 8px; transition: transform .15s; }
 details.picker-all[open] > summary::before { transform: rotate(90deg); }
 .chip .x { margin-left: 6px; opacity: 0.8; }
+
+.show-more {
+  display: block;
+  grid-column: 1 / -1;
+  margin: 18px auto 8px;
+  min-height: 44px;
+  padding: 0 22px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 2px;
+  cursor: pointer;
+}
