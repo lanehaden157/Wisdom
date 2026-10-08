@@ -14,7 +14,7 @@ tagging / classification work.
 
 Inputs
   data/archive/quotes-v1.json      frozen v1 corpus {corpus:[{id,quote,tags}], facet_map:{}}
-  source/quotes-raw.txt            raw quote dump (reference only; not parsed here)
+  (the raw quote dump now lives outside the repo, in ../private-sources/)
   source/poems-prayers-raw.txt     raw poems + prayers, blank-line separated,
                                    two section headers: "Poems" then "Prayers"
   source/patches/new-quotes.json   {quotes:[{text,category}]} appended after the base corpus
