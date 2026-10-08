@@ -5,13 +5,10 @@ Pre-commit guard for the Wisdom data files. Run from the repo root:
     python scripts/validate.py
 
 Exits non-zero (and prints what failed) if:
-  - data/quotes.js is missing or malformed
-  - any quote id is duplicated (corpus or a quote-edits.js `added` card)
+  - data/cards.js is missing, malformed, or has empty text / a bad or duplicate id
   - any category is not quote | poem | prayer
-  - a quote-edits.js `added` id collides with the generated corpus
-  - data/assignments.js or data/origins.js references an unknown id
-    (corpus + `added` cards both count)
   - an origin value is not aa | religious | misc
+  - a card uses a tag slug that isn't in data/tags.js, or a tag's group is unknown
   - a date pattern appears in a card, or a hashed protected identifier appears
     in ANY file in the repo (everything here is publicly served)
 """
@@ -88,53 +85,41 @@ def fail(msg):
 
 
 def main():
-    quotes = load_global(ROOT / "data" / "quotes.js", "window.Wisdom.quotes", None)
-    if not isinstance(quotes, list) or not quotes:
-        fail("data/quotes.js: not a non-empty array")
+    cards = load_global(ROOT / "data" / "cards.js", "window.Wisdom.cards", None)
+    if not isinstance(cards, list) or not cards:
+        fail("data/cards.js: not a non-empty array")
         return report()
+    tags = load_global(ROOT / "data" / "tags.js", "window.Wisdom.tags", {"tags": {}})
+    known_tags = set(tags.get("tags", {}))
 
     ids = set()
-    for r in quotes:
-        if r["id"] in ids:
-            fail(f"duplicate quote id {r['id']}")
-        ids.add(r["id"])
+    for r in cards:
+        i = r.get("id")
+        if not isinstance(i, int) or i < 1:
+            fail(f"bad card id {i!r}")
+            continue
+        if i in ids:
+            fail(f"duplicate card id {i}")
+        ids.add(i)
+        if not isinstance(r.get("text"), str) or not r["text"].strip():
+            fail(f"id {i}: empty text")
+            continue
         if r.get("category") not in CATEGORIES:
-            fail(f"id {r['id']}: bad category {r.get('category')!r}")
+            fail(f"id {i}: bad category {r.get('category')!r}")
+        if "origin" in r and r["origin"] not in ORIGINS:
+            fail(f"id {i}: bad origin {r['origin']!r}")
+        for s in r.get("tags", []):
+            if s not in known_tags:
+                fail(f"id {i}: uses unknown tag {s!r}")
+        if len(set(r.get("tags", []))) != len(r.get("tags", [])):
+            fail(f"id {i}: duplicate tags")
         for pat in PII_PATTERNS:
             if pat.search(r["text"]):
-                fail(f"id {r['id']}: matches PII pattern /{pat.pattern}/ -> {r['text'][:60]!r}")
+                fail(f"id {i}: matches PII pattern /{pat.pattern}/ -> {r['text'][:60]!r}")
 
-    # app-created cards (data/quote-edits.js `added`) are real ids too — a tag
-    # or origin may legitimately point at one.
-    qedits = load_global(ROOT / "data" / "quote-edits.js", "window.Wisdom.quoteEdits",
-                         {"edits": {}, "deletes": [], "added": []})
-    for r in qedits.get("added", []):
-        if r["id"] in ids:
-            fail(f"quote-edits.js: added id {r['id']} collides with quotes.js")
-        ids.add(r["id"])
-        if r.get("category") not in CATEGORIES:
-            fail(f"quote-edits.js: added id {r['id']} bad category {r.get('category')!r}")
-        for pat in PII_PATTERNS:
-            if pat.search(r.get("text", "")):
-                fail(f"quote-edits.js: added id {r['id']} matches PII /{pat.pattern}/")
-
-    assignments = load_global(ROOT / "data" / "assignments.js", "window.Wisdom.assignments", {})
-    tags = load_global(ROOT / "data" / "tags.js", "window.Wisdom.tags", {"tags": {}})
-    origins = load_global(ROOT / "data" / "origins.js", "window.Wisdom.origins", {})
-
-    known_tags = set(tags.get("tags", {}))
-    for qid, slugs in assignments.items():
-        if int(qid) not in ids:
-            fail(f"assignments.js: id {qid} not in quotes.js")
-        for s in slugs:
-            if known_tags and s not in known_tags:
-                fail(f"assignments.js: id {qid} uses unknown tag {s!r}")
-
-    for qid, val in origins.items():
-        if int(qid) not in ids:
-            fail(f"origins.js: id {qid} not in quotes.js")
-        if val not in ORIGINS:
-            fail(f"origins.js: id {qid} bad origin {val!r}")
+    for slug, t_ in tags.get("tags", {}).items():
+        if t_.get("group") not in tags.get("order", []):
+            fail(f"tags.js: tag {slug!r} has group {t_.get('group')!r} not in order")
 
     scan_served_files()
     report()

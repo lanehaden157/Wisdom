@@ -9,11 +9,9 @@ window.Wisdom.Github = (function () {
   var Store = W.Store;
 
   var PATH = {
-    tags:   "data/tags.js",
-    assign: "data/assignments.js",
-    origins:"data/origins.js",
-    qedits: "data/quote-edits.js",
-    stamp:  "data/stamp.js"
+    cards: "data/cards.js",
+    tags:  "data/tags.js",
+    stamp: "data/stamp.js"
   };
 
   function loadConfig() {

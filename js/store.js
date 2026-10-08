@@ -1,9 +1,12 @@
-/* ---------- Working state: saved data files + localStorage overlay ----------
-   The four mutable objects (tags / assignments / origins / quoteEdits) are held
-   as full working copies. Every mutation writes the whole object to
-   localStorage, namespaced by the build stamp. Save (github.js) PUTs each file
-   and calls adoptSaved(); a stale cached page simply finds nothing under the
-   new stamp and starts clean from the published data.
+/* ---------- Working state: published data + localStorage overlay ----------
+   Two mutable objects, held as full working copies:
+     cards  { id: {id, text, category, origin?, tags?} }   <- data/cards.js
+     tags   { order, groups, tags }                        <- data/tags.js
+   Every mutation writes the working copy to localStorage, namespaced by the
+   publish stamp, plus a "base" snapshot of the published data the work started
+   from. Save (github.js) commits the changed files and calls adoptSaved(). If
+   the site moves on (another device saved), the old stamp's work is 3-way
+   merged onto the new published data instead of being orphaned.
 */
 window.Wisdom = window.Wisdom || {};
 window.Wisdom.Store = (function () {
@@ -11,25 +14,42 @@ window.Wisdom.Store = (function () {
   var C = W.config;
 
   var stamp = String(W.stamp || "0");
+  var KEYS = ["cards", "tags"];
+  var FIELDS = ["text", "category", "origin", "tags"];
   function lsKey(k) { return C.lsPrefix + stamp + "::" + k; }
-
+  function J(x) { return JSON.stringify(x); }
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
+  /* canonical card: fixed key order, empty origin/tags omitted (matches cards.js on disk) */
+  function norm(c) {
+    var o = { id: c.id, text: c.text, category: c.category };
+    if (c.origin) o.origin = c.origin;
+    if (c.tags && c.tags.length) o.tags = c.tags.slice();
+    return o;
+  }
+  function toMap(list) {
+    var m = {};
+    (list || []).forEach(function (c) { m[c.id] = norm(c); });
+    return m;
+  }
+  function sortedList(map) {
+    return Object.keys(map).map(function (k) { return norm(map[k]); })
+      .sort(function (a, b) { return a.id - b.id; });
+  }
+  function fixTags(t) {
+    t = t || {};
+    if (!t.order) t.order = [];
+    if (!t.groups) t.groups = {};
+    if (!t.tags) t.tags = {};
+    return t;
+  }
+
   var saved = {
-    tags:    W.tags        || { order: [], groups: {}, tags: {} },
-    assign:  W.assignments  || {},
-    origins: W.origins      || {},
-    qedits:  W.quoteEdits   || { edits: {}, deletes: [], added: [] }
+    cards: toMap(W.cards),
+    tags:  fixTags(clone(W.tags || {}))
   };
 
-  var KEYS = ["tags", "assign", "origins", "qedits"];
-  function J(x) { return JSON.stringify(x); }
-
-  /* ---------- carry unsaved work across a publish (3-way merge) ----------
-     Each device keeps a "base" snapshot (the published data its working copy
-     started from). If the site moves on (stamp changes - e.g. the phone saved),
-     the old stamp's work is merged onto the new published data instead of being
-     orphaned: only what THIS device changed relative to its base is re-applied. */
+  /* ---------- carry unsaved work across a publish (3-way merge) ---------- */
   function mergeMap(base, work, cur) {
     var res = clone(cur), seen = {};
     Object.keys(base).concat(Object.keys(work)).forEach(function (k) {
@@ -39,47 +59,39 @@ window.Wisdom.Store = (function () {
     });
     return res;
   }
-  function mergeWork(base, work, cur) {
-    var out = {};
-    out.assign  = mergeMap(base.assign,  work.assign,  cur.assign);
-    out.origins = mergeMap(base.origins, work.origins, cur.origins);
-    var bt = base.tags, wt = work.tags, ct = cur.tags;
-    out.tags = {
-      order: ct.order.concat((wt.order || []).filter(function (g) { return ct.order.indexOf(g) === -1; })),
-      groups: mergeMap(bt.groups || {}, wt.groups || {}, ct.groups || {}),
-      tags: mergeMap(bt.tags || {}, wt.tags || {}, ct.tags || {})
-    };
-    var bq = base.qedits, wq = work.qedits, cq = cur.qedits;
-    var qe = { edits: mergeMap(bq.edits || {}, wq.edits || {}, cq.edits || {}), deletes: cq.deletes.slice(), added: clone(cq.added) };
-    wq.deletes.forEach(function (id) { if (bq.deletes.indexOf(id) === -1 && qe.deletes.indexOf(id) === -1) qe.deletes.push(id); });
-    var baseAdded = {}, workAdded = {};
-    bq.added.forEach(function (a) { baseAdded[a.id] = a; });
-    wq.added.forEach(function (a) { workAdded[a.id] = a; });
-    bq.added.forEach(function (a) {                       /* removed locally */
-      if (!workAdded[a.id]) qe.added = qe.added.filter(function (x) { return x.id !== a.id; });
+  function mergeCards(base, work, cur) {
+    var res = clone(cur), maxId = 0;
+    Object.keys(cur).concat(Object.keys(base), Object.keys(work)).forEach(function (k) { if (+k > maxId) maxId = +k; });
+    Object.keys(work).forEach(function (k) {
+      var w = work[k], b = base[k], c = res[k];
+      if (!b) {                                           /* new on this device */
+        var n = clone(w);
+        if (c) { n.id = ++maxId; }                        /* id taken by the other device */
+        res[n.id] = n;
+      } else if (c) {                                     /* field-level: keep this device's changes */
+        FIELDS.forEach(function (f) {
+          if (J(b[f]) === J(w[f])) return;
+          if (w[f] === undefined || (f === "tags" && !w[f].length)) delete c[f]; else c[f] = clone(w[f]);
+        });
+        res[k] = norm(c);
+      }                                                   /* else: deleted elsewhere - that wins */
     });
-    var used = {};
-    (W.quotes || []).forEach(function (q) { used[q.id] = 1; });
-    qe.added.forEach(function (a) { used[a.id] = 1; });
-    wq.added.forEach(function (a) {
-      if (baseAdded[a.id]) {                              /* edited locally */
-        if (J(baseAdded[a.id]) !== J(a)) qe.added = qe.added.map(function (x) { return x.id === a.id ? clone(a) : x; });
-        return;
-      }
-      var n = clone(a);                                   /* brand-new local card */
-      if (used[n.id]) {                                   /* id taken by the other device */
-        var mx = 0; Object.keys(used).forEach(function (k) { if (+k > mx) mx = +k; });
-        var old = n.id; n.id = mx + 1;
-        if (out.assign[old] && work.assign[old]) { out.assign[n.id] = out.assign[old]; if (!cur.assign[old]) delete out.assign[old]; }
-        if (out.origins[old] && work.origins[old]) { out.origins[n.id] = out.origins[old]; if (!cur.origins[old]) delete out.origins[old]; }
-      }
-      used[n.id] = 1; qe.added.push(n);
-    });
-    out.qedits = qe;
-    return out;
+    Object.keys(base).forEach(function (k) { if (!work[k]) delete res[k]; });   /* deleted here */
+    return res;
   }
-  /* Looks for work saved under OTHER stamps that has a base; merges it into the
-     current published data. Returns {work, recovered:n} or null. */
+  function mergeWork(base, work, cur) {
+    var bt = fixTags(base.tags), wt = fixTags(work.tags), ct = fixTags(cur.tags);
+    return {
+      cards: mergeCards(base.cards, work.cards, cur.cards),
+      tags: {
+        order: ct.order.concat(wt.order.filter(function (g) { return ct.order.indexOf(g) === -1; })),
+        groups: mergeMap(bt.groups, wt.groups, ct.groups),
+        tags: mergeMap(bt.tags, wt.tags, ct.tags)
+      }
+    };
+  }
+  /* Work saved under OTHER stamps (with a base) is merged into the current
+     published data. Returns {work, recovered:n} or null. */
   function recoverOrphans() {
     var pre = C.lsPrefix, mine = pre + stamp + "::", groups = {}, hasMine = false;
     try {
@@ -91,24 +103,18 @@ window.Wisdom.Store = (function () {
         (groups[m[0]] = groups[m[0]] || {})[m[1]] = key;
       }
       if (hasMine) return null;                           /* this stamp already has local work */
-      var cur = { tags: clone(saved.tags), assign: clone(saved.assign), origins: clone(saved.origins), qedits: clone(saved.qedits) };
-      ["order", "groups", "tags"].forEach(function (x) { if (!cur.tags[x]) cur.tags[x] = x === "order" ? [] : {}; });
-      ["edits", "deletes", "added"].forEach(function (x) { if (!cur.qedits[x]) cur.qedits[x] = x === "edits" ? {} : []; });
-      var result = null, recovered = 0;
+      var cur = { cards: clone(saved.cards), tags: clone(saved.tags) };
+      var recovered = 0;
       Object.keys(groups).sort().forEach(function (s) {
         var g = groups[s];
         if (!g.base) return;
         var base = JSON.parse(localStorage.getItem(g.base));
         var work = {};
         KEYS.forEach(function (x) { work[x] = g[x] ? JSON.parse(localStorage.getItem(g[x])) : clone(base[x]); });
-        ["order", "groups", "tags"].forEach(function (x) { if (!base.tags[x]) base.tags[x] = work.tags[x] = x === "order" ? [] : {}; if (!work.tags[x]) work.tags[x] = x === "order" ? [] : {}; });
-        ["edits", "deletes", "added"].forEach(function (x) { [base, work].forEach(function (o) { if (!o.qedits[x]) o.qedits[x] = x === "edits" ? {} : []; }); });
-        var changed = KEYS.some(function (x) { return J(base[x]) !== J(work[x]); });
-        if (changed) { cur = mergeWork(base, work, cur); recovered++; }
+        if (KEYS.some(function (x) { return J(base[x]) !== J(work[x]); })) { cur = mergeWork(base, work, cur); recovered++; }
         Object.keys(g).forEach(function (x) { localStorage.removeItem(g[x]); });
       });
-      if (!recovered) return null;
-      return { work: cur, recovered: recovered };
+      return recovered ? { work: cur, recovered: recovered } : null;
     } catch (e) { return null; }
   }
 
@@ -121,108 +127,72 @@ window.Wisdom.Store = (function () {
   }
 
   var recovery = recoverOrphans();
-  var work = recovery ? recovery.work : {
-    tags:    load("tags"),
-    assign:  load("assign"),
-    origins: load("origins"),
-    qedits:  load("qedits")
-  };
-  if (recovery) KEYS.forEach(function (k) { persist(k); });
-  ["order", "groups", "tags"].forEach(function (k) { if (!work.tags[k]) work.tags[k] = (k === "order" ? [] : {}); });
-  ["edits", "deletes", "added"].forEach(function (k) { if (!work.qedits[k]) work.qedits[k] = (k === "deletes" || k === "added" ? [] : {}); });
+  var work = recovery ? recovery.work : { cards: load("cards"), tags: load("tags") };
+  fixTags(work.tags);
 
   function persist(k) {
     try {
       if (localStorage.getItem(lsKey("base")) == null) {    /* published data this work started from */
-        localStorage.setItem(lsKey("base"), J({ tags: saved.tags, assign: saved.assign, origins: saved.origins, qedits: saved.qedits }));
+        localStorage.setItem(lsKey("base"), J({ cards: saved.cards, tags: saved.tags }));
       }
       localStorage.setItem(lsKey(k), J(work[k]));
     } catch (e) {}
   }
+  if (recovery) KEYS.forEach(persist);
 
-  /* ---------- merged card list ---------- */
+  /* ---------- merged card list (what the UI renders) ---------- */
   function cards() {
-    var del = {};
-    work.qedits.deletes.forEach(function (id) { del[id] = 1; });
-    var savedAddedIds = {};
-    saved.qedits.added.forEach(function (a) { savedAddedIds[a.id] = 1; });
-    var out = [];
-    (W.quotes || []).forEach(function (q) {
-      if (del[q.id]) return;
-      var e = work.qedits.edits[q.id];
-      out.push({
-        id: q.id,
-        text: e && e.text != null ? e.text : q.text,
-        category: e && e.category ? e.category : q.category,
-        edited: !!e
-      });
+    return sortedList(work.cards).map(function (c) {
+      var s = saved.cards[c.id];
+      return {
+        id: c.id, text: c.text, category: c.category,
+        tags: (c.tags || []).slice(), origin: c.origin || null,
+        added: !s,
+        edited: !!s && (s.text !== c.text || s.category !== c.category)
+      };
     });
-    work.qedits.added.forEach(function (a) {
-      if (!del[a.id]) out.push({ id: a.id, text: a.text, category: a.category, added: !savedAddedIds[a.id] });
-    });
-    out.forEach(function (c) {
-      c.tags = (work.assign[c.id] || []).slice();
-      c.origin = work.origins[c.id] || null;
-    });
-    return out;
   }
 
-  /* ---------- quote edits ---------- */
-  function findBase(id) {
-    for (var i = 0; i < (W.quotes || []).length; i++) if (W.quotes[i].id === id) return W.quotes[i];
-    return null;
-  }
+  /* ---------- card mutations ---------- */
   function editCard(id, text, category) {
-    var added = work.qedits.added.filter(function (a) { return a.id === id; })[0];
-    if (added) { added.text = text; added.category = category; persist("qedits"); return; }
-    var base = findBase(id);
-    if (base && base.text === text && base.category === category) delete work.qedits.edits[id];
-    else work.qedits.edits[id] = { text: text, category: category };
-    persist("qedits");
+    var c = work.cards[id]; if (!c) return;
+    c.text = text; c.category = category;
+    persist("cards");
   }
   function nextId() {
-    /* continue the single id sequence: one past the highest id anywhere —
-       the generated corpus, plus any app-created cards (saved or still local). */
+    /* one past the highest id anywhere (published or local) */
     var mx = 0;
-    (W.quotes || []).forEach(function (q) { if (q.id > mx) mx = q.id; });
-    saved.qedits.added.forEach(function (a) { if (a.id > mx) mx = a.id; });
-    work.qedits.added.forEach(function (a) { if (a.id > mx) mx = a.id; });
+    Object.keys(saved.cards).concat(Object.keys(work.cards)).forEach(function (k) { if (+k > mx) mx = +k; });
     return mx + 1;
   }
   function addCard(text, category) {
     var id = nextId();
-    work.qedits.added.push({ id: id, text: text, category: category });
-    persist("qedits");
+    work.cards[id] = { id: id, text: text, category: category };
+    persist("cards");
     return id;
   }
   function deleteCard(id) {
-    if (work.qedits.added.some(function (a) { return a.id === id; })) {
-      work.qedits.added = work.qedits.added.filter(function (a) { return a.id !== id; });
-    } else if (work.qedits.deletes.indexOf(id) === -1) {
-      work.qedits.deletes.push(id);
-    }
-    delete work.qedits.edits[id];
-    delete work.assign[id];
-    delete work.origins[id];
-    persist("qedits"); persist("assign"); persist("origins");
+    delete work.cards[id];
+    persist("cards");
   }
-
-  /* ---------- assignments / origins ---------- */
   function setTags(id, slugs) {
+    var c = work.cards[id]; if (!c) return;
     slugs = slugs.filter(Boolean);
-    if (slugs.length) work.assign[id] = slugs; else delete work.assign[id];
-    persist("assign");
+    if (slugs.length) c.tags = slugs; else delete c.tags;
+    persist("cards");
   }
   function toggleTag(id, slug) {
-    var cur = (work.assign[id] || []).slice();
+    var c = work.cards[id];
+    var cur = ((c && c.tags) || []).slice();
     var i = cur.indexOf(slug);
     if (i === -1) cur.push(slug); else cur.splice(i, 1);
     setTags(id, cur);
     return cur;
   }
   function setOrigin(id, val) {
-    if (val) work.origins[id] = val; else delete work.origins[id];
-    persist("origins");
+    var c = work.cards[id]; if (!c) return;
+    if (val) c.origin = val; else delete c.origin;
+    persist("cards");
   }
 
   /* ---------- tag vocabulary ---------- */
@@ -249,25 +219,25 @@ window.Wisdom.Store = (function () {
       persist("tags");
     }
   }
+  function eachCard(fn) { Object.keys(work.cards).forEach(function (k) { fn(work.cards[k]); }); }
   function deleteTag(slug) {
     delete work.tags.tags[slug];
-    Object.keys(work.assign).forEach(function (id) {
-      var n = work.assign[id].filter(function (s) { return s !== slug; });
-      if (n.length) work.assign[id] = n; else delete work.assign[id];
+    eachCard(function (c) {
+      if (!c.tags) return;
+      c.tags = c.tags.filter(function (s) { return s !== slug; });
+      if (!c.tags.length) delete c.tags;
     });
-    persist("tags"); persist("assign");
+    persist("tags"); persist("cards");
   }
   function mergeTags(from, into) {
     if (!work.tags.tags[into] || from === into) return;
-    Object.keys(work.assign).forEach(function (id) {
-      var arr = work.assign[id];
-      if (arr.indexOf(from) === -1) return;
-      arr = arr.filter(function (s) { return s !== from; });
-      if (arr.indexOf(into) === -1) arr.push(into);
-      work.assign[id] = arr;
+    eachCard(function (c) {
+      if (!c.tags || c.tags.indexOf(from) === -1) return;
+      c.tags = c.tags.filter(function (s) { return s !== from; });
+      if (c.tags.indexOf(into) === -1) c.tags.push(into);
     });
     delete work.tags.tags[from];
-    persist("tags"); persist("assign");
+    persist("tags"); persist("cards");
   }
   function setGroupCategories(group, cats) {
     if (!work.tags.groups[group]) work.tags.groups[group] = {};
@@ -282,69 +252,55 @@ window.Wisdom.Store = (function () {
   }
 
   /* ---------- pending / save plumbing ---------- */
-  function pending() {
-    /* compare the working copy to what's actually published — a card that has
-       already been saved lives on in work.qedits forever and must NOT keep
-       showing as unsaved (that was the "prompted to Save on every load" bug). */
-    var qe = JSON.stringify(work.qedits) !== JSON.stringify(saved.qedits);
-    var a  = JSON.stringify(work.assign)  !== JSON.stringify(saved.assign);
-    var o  = JSON.stringify(work.origins) !== JSON.stringify(saved.origins);
-    var t  = JSON.stringify(work.tags)    !== JSON.stringify(saved.tags);
-
-    var q = 0;
-    if (qe) {
-      var sEd = saved.qedits.edits || {};
-      var sDel = saved.qedits.deletes || [];
-      var sAdd = {};
-      (saved.qedits.added || []).forEach(function (x) { sAdd[x.id] = JSON.stringify(x); });
-      Object.keys(work.qedits.edits).forEach(function (id) {
-        if (JSON.stringify(work.qedits.edits[id]) !== JSON.stringify(sEd[id])) q++;
-      });
-      work.qedits.deletes.forEach(function (id) { if (sDel.indexOf(id) === -1) q++; });
-      work.qedits.added.forEach(function (x) { if (sAdd[x.id] !== JSON.stringify(x)) q++; });
-    }
-    return { quotes: q, assign: a, origins: o, tags: t, any: qe || a || o || t };
+  function diffs() {
+    var d = { added: 0, deleted: 0, edited: 0, tagged: 0, origins: 0 };
+    Object.keys(work.cards).forEach(function (k) {
+      var w = work.cards[k], s = saved.cards[k];
+      if (!s) { d.added++; return; }
+      if (s.text !== w.text || s.category !== w.category) d.edited++;
+      if (J(s.tags || []) !== J(w.tags || [])) d.tagged++;
+      if ((s.origin || null) !== (w.origin || null)) d.origins++;
+    });
+    Object.keys(saved.cards).forEach(function (k) { if (!work.cards[k]) d.deleted++; });
+    d.vocab = J(work.tags) !== J(saved.tags);
+    return d;
   }
-
+  function pending() {
+    var d = diffs(), q = d.added + d.deleted + d.edited;
+    /* new cards carry their own tags/origin; count those as part of the card */
+    return { quotes: q, assign: d.tagged > 0, origins: d.origins > 0, tags: d.vocab,
+             any: !!(q || d.tagged || d.origins || d.vocab) };
+  }
   /* which app-written files differ from what's published */
   function changedKeys() {
-    return KEYS.filter(function (k) { return J(work[k]) !== J(saved[k]); });
+    return KEYS.filter(function (k) {
+      return k === "cards" ? J(sortedList(work.cards)) !== J(sortedList(saved.cards)) : J(work.tags) !== J(saved.tags);
+    });
   }
   /* short human commit message, e.g. "Wisdom — +3 cards, tags on 12" */
   function summary() {
-    var sq = saved.qedits, wq = work.qedits, parts = [];
-    var sAdd = {}; sq.added.forEach(function (a) { sAdd[a.id] = 1; });
-    var added = wq.added.filter(function (a) { return !sAdd[a.id]; }).length;
-    var deleted = wq.deletes.filter(function (id) { return sq.deletes.indexOf(id) === -1; }).length;
-    var edited = Object.keys(wq.edits).filter(function (id) { return J(wq.edits[id]) !== J(sq.edits[id]); }).length;
-    function diffCount(a, b) {
-      var n = 0, seen = {};
-      Object.keys(a).concat(Object.keys(b)).forEach(function (k) { if (!seen[k]) { seen[k] = 1; if (J(a[k]) !== J(b[k])) n++; } });
-      return n;
-    }
-    var tg = diffCount(saved.assign, work.assign), og = diffCount(saved.origins, work.origins);
-    if (added) parts.push("+" + added + " card" + (added > 1 ? "s" : ""));
-    if (edited) parts.push("edited " + edited);
-    if (deleted) parts.push("deleted " + deleted);
-    if (tg) parts.push("tags on " + tg);
-    if (og) parts.push("origin on " + og);
-    if (J(work.tags) !== J(saved.tags)) parts.push("tag list");
+    var d = diffs(), parts = [];
+    if (d.added) parts.push("+" + d.added + " card" + (d.added > 1 ? "s" : ""));
+    if (d.edited) parts.push("edited " + d.edited);
+    if (d.deleted) parts.push("deleted " + d.deleted);
+    if (d.tagged) parts.push("tags on " + d.tagged);
+    if (d.origins) parts.push("origin on " + d.origins);
+    if (d.vocab) parts.push("tag list");
     return "Wisdom — " + (parts.join(", ") || "update");
   }
 
   var HEADERS = {
-    tags:    "/* APP-WRITTEN by the tag manager. Safe to hand-edit. */",
-    assign:  "/* APP-WRITTEN by the tagging queue. { quoteId: [tagSlug, ...] }. */",
-    origins: "/* APP-WRITTEN. { quoteId: \"aa\" | \"religious\" | \"misc\" }. */",
-    qedits:  "/* APP-WRITTEN. Overlay on data/quotes.js (edits / deletes / added). */",
-    stamp:   "/* APP-WRITTEN. Bumped on every publish; namespaces localStorage. */"
+    cards: "/* APP-WRITTEN. One object per card: {id, text, category, origin?, tags?}. */",
+    tags:  "/* APP-WRITTEN by the tag manager. Safe to hand-edit. */",
+    stamp: "/* APP-WRITTEN. Bumped on every publish; namespaces localStorage. */"
   };
-  var GLOBAL = { tags: "tags", assign: "assignments", origins: "origins", qedits: "quoteEdits", stamp: "stamp" };
-
   function serialize(k, newStamp) {
-    var val = k === "stamp" ? (newStamp || String(Date.now())) : work[k];
-    return HEADERS[k] + "\nwindow.Wisdom = window.Wisdom || {};\nwindow.Wisdom." +
-      GLOBAL[k] + " = " + JSON.stringify(val, null, 1) + ";\n";
+    var head = HEADERS[k] + "\nwindow.Wisdom = window.Wisdom || {};\nwindow.Wisdom.";
+    if (k === "cards") {
+      return head + "cards = [\n" + sortedList(work.cards).map(function (c) { return " " + J(c); }).join(",\n") + "\n];\n";
+    }
+    if (k === "stamp") return head + "stamp = " + J(newStamp || String(Date.now())) + ";\n";
+    return head + "tags = " + JSON.stringify(work.tags, null, 1) + ";\n";
   }
 
   function adoptSaved(newStamp) {
@@ -364,7 +320,6 @@ window.Wisdom.Store = (function () {
     createTag: createTag, renameTag: renameTag, setTagGroup: setTagGroup,
     deleteTag: deleteTag, mergeTags: mergeTags, setGroupCategories: setGroupCategories,
     tagCountsFor: tagCountsFor,
-    pending: pending, serialize: serialize, adoptSaved: adoptSaved,
-    fileList: ["tags", "assign", "origins", "qedits", "stamp"]
+    pending: pending, serialize: serialize, adoptSaved: adoptSaved
   };
 })();
