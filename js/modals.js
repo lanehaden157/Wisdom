@@ -5,8 +5,7 @@ window.Wisdom.Modals = (function () {
   var C = W.config;
   var Store = W.Store;
 
-  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
-  function $(id) { return document.getElementById(id); }
+  var el = W.util.el, $ = W.util.$, cardNo = W.util.cardNo;
 
   /* ---- shared: segmented control ---- */
   function segmented(container, options, current, onPick) {
@@ -106,7 +105,7 @@ window.Wisdom.Modals = (function () {
     cat = card ? card.category : W.UI.state.category;
     origin = card ? card.origin : null;
 
-    $("modalTitle").textContent = card ? "Edit No. " + String(card.id).padStart(4, "0") : "File a new card";
+    $("modalTitle").textContent = card ? "Edit " + cardNo(card.id) : "File a new card";
     $("saveEdit").textContent = card ? "Save changes" : "File this card";
     $("editQuoteText").value = card ? card.text : "";
     var del = $("deleteCard");
@@ -186,7 +185,7 @@ window.Wisdom.Modals = (function () {
       if (p.length === 1) pick = p[0];
       else do { pick = p[Math.floor(Math.random() * p.length)]; } while (pick.id === last);
       last = pick.id;
-      $("drawId").textContent = "No. " + String(pick.id).padStart(4, "0");
+      $("drawId").textContent = cardNo(pick.id);
       $("drawQuote").textContent = pick.text;
       var tw = $("drawTags"); tw.innerHTML = "";
       var tm = Store.tagsMap();

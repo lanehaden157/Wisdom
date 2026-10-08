@@ -25,11 +25,13 @@
         var m = String(err && err.message || err);
         if (m === "noconfig") { W.openSettings(); W.toast("Connect your site first — fill in the three fields", true); }
         else if (m === "auth") W.toast("GitHub rejected the token — open ⚙ and paste a fresh one", true);
-        else if (m === "behind") W.toast("The site changed since you loaded (phone?). Reload, then Save again.", true);
+        else if (m === "behind") W.toast("The site changed since you loaded (phone?). Reload — your unsaved changes will be merged in automatically.", true);
         else if (m === "conflict") W.toast("Save hit a conflict — reload and try again. Local changes are safe.", true);
         else W.toast("Save failed (" + m + ") — changes are still safe on this device", true);
       });
   });
+
+  if (W.Store.recovered) W.toast("The site was updated elsewhere — your unsaved changes were carried over. Review, then Save.", true);
 
   W.Modals.wire();
   W.Tagger.wire();

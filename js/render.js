@@ -4,16 +4,11 @@ window.Wisdom.UI = (function () {
   var W = window.Wisdom;
   var C = W.config;
   var Store = W.Store;
+  var el = W.util.el, cardNo = W.util.cardNo;
 
   var state = { category: "quote", query: "", selectedTags: new Set() };
   var facetOpen = {};
 
-  function el(tag, cls, text) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text != null) e.textContent = text;
-    return e;
-  }
   function isReading(cat) { return C.readingCategories.indexOf(cat) !== -1; }
 
   function inCategory(cards) {
@@ -39,7 +34,7 @@ window.Wisdom.UI = (function () {
       var b = el("button", "tab");
       b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", state.category === cat ? "true" : "false");
-      b.innerHTML = C.categoryLabel[cat] + "<span class='n'>" + (counts[cat] || 0) + "</span>";
+      b.appendChild(W.util.withCount(C.categoryLabel[cat], counts[cat] || 0));
       b.addEventListener("click", function () {
         if (state.category === cat) return;
         state.category = cat;
@@ -101,7 +96,7 @@ window.Wisdom.UI = (function () {
         var chip = el("button", "chip" + (state.selectedTags.has(slug) ? " active" : ""));
         chip.type = "button";
         chip.setAttribute("data-group", g);
-        chip.innerHTML = (t ? t.label : slug) + "<span class='n'>" + counts[slug] + "</span>";
+        chip.appendChild(W.util.withCount(t ? t.label : slug, counts[slug]));
         chip.addEventListener("click", function () {
           if (state.selectedTags.has(slug)) state.selectedTags.delete(slug);
           else state.selectedTags.add(slug);
@@ -124,7 +119,7 @@ window.Wisdom.UI = (function () {
       var r = el("div", "chip-row");
       var ch = el("button", "chip" + (state.selectedTags.has("__untagged__") ? " active" : ""));
       ch.type = "button";
-      ch.innerHTML = "show untagged<span class='n'>" + untagged + "</span>";
+      ch.appendChild(W.util.withCount("show untagged", untagged));
       ch.addEventListener("click", function () {
         if (state.selectedTags.has("__untagged__")) state.selectedTags.delete("__untagged__");
         else { state.selectedTags.clear(); state.selectedTags.add("__untagged__"); }
@@ -176,7 +171,7 @@ window.Wisdom.UI = (function () {
       if (c.edited || c.added) {
         card.appendChild(el("span", "draft-badge", c.added ? "unfiled" : "edited"));
       }
-      card.appendChild(el("span", "id", "No. " + String(c.id).padStart(4, "0")));
+      card.appendChild(el("span", "id", cardNo(c.id)));
       card.appendChild(el("div", "quote", c.text));
       var foot = el("div", "card-foot");
       var tags = el("div", "tags");

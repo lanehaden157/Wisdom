@@ -5,8 +5,7 @@ window.Wisdom.Tagger = (function () {
   var C = W.config;
   var Store = W.Store;
 
-  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
-  function $(id) { return document.getElementById(id); }
+  var el = W.util.el, $ = W.util.$, cardNo = W.util.cardNo;
 
   /* ================= tagging queue ================= */
   var q = { list: [], i: 0, order: "sequential", scope: "untagged", recent: [], tagged: 0, skipped: 0, sinceSave: 0 };
@@ -69,7 +68,7 @@ window.Wisdom.Tagger = (function () {
 
     var scroll = el("div", "queue-scroll");
     var qc = el("div", "queue-card");
-    qc.appendChild(el("span", "id", "No. " + String(live.id).padStart(4, "0") + " · " + live.category));
+    qc.appendChild(el("span", "id", cardNo(live.id) + " · " + live.category));
     qc.appendChild(el("div", "quote", live.text));
     scroll.appendChild(qc);
 

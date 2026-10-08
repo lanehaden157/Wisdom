@@ -23,8 +23,6 @@ window.Wisdom.config = {
   configKey: "wisdom_site_config_v1",      /* NOT namespaced: survives publishes */
 
   savePromptEvery: 25,                     /* tagging queue: nudge to Save */
-  addedIdBase: 935,                        /* unused fallback; app cards now
-                                             continue from the highest live id */
 
   api: "https://api.github.com"
 };

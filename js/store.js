@@ -16,11 +16,101 @@ window.Wisdom.Store = (function () {
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
   var saved = {
-    tags:    W.tags        || { order: ["Program", "Theme", "Form"], groups: {}, tags: {} },
+    tags:    W.tags        || { order: [], groups: {}, tags: {} },
     assign:  W.assignments  || {},
     origins: W.origins      || {},
     qedits:  W.quoteEdits   || { edits: {}, deletes: [], added: [] }
   };
+
+  var KEYS = ["tags", "assign", "origins", "qedits"];
+  function J(x) { return JSON.stringify(x); }
+
+  /* ---------- carry unsaved work across a publish (3-way merge) ----------
+     Each device keeps a "base" snapshot (the published data its working copy
+     started from). If the site moves on (stamp changes - e.g. the phone saved),
+     the old stamp's work is merged onto the new published data instead of being
+     orphaned: only what THIS device changed relative to its base is re-applied. */
+  function mergeMap(base, work, cur) {
+    var res = clone(cur), seen = {};
+    Object.keys(base).concat(Object.keys(work)).forEach(function (k) {
+      if (seen[k]) return; seen[k] = 1;
+      if (J(base[k]) === J(work[k])) return;
+      if (work[k] === undefined) delete res[k]; else res[k] = clone(work[k]);
+    });
+    return res;
+  }
+  function mergeWork(base, work, cur) {
+    var out = {};
+    out.assign  = mergeMap(base.assign,  work.assign,  cur.assign);
+    out.origins = mergeMap(base.origins, work.origins, cur.origins);
+    var bt = base.tags, wt = work.tags, ct = cur.tags;
+    out.tags = {
+      order: ct.order.concat((wt.order || []).filter(function (g) { return ct.order.indexOf(g) === -1; })),
+      groups: mergeMap(bt.groups || {}, wt.groups || {}, ct.groups || {}),
+      tags: mergeMap(bt.tags || {}, wt.tags || {}, ct.tags || {})
+    };
+    var bq = base.qedits, wq = work.qedits, cq = cur.qedits;
+    var qe = { edits: mergeMap(bq.edits || {}, wq.edits || {}, cq.edits || {}), deletes: cq.deletes.slice(), added: clone(cq.added) };
+    wq.deletes.forEach(function (id) { if (bq.deletes.indexOf(id) === -1 && qe.deletes.indexOf(id) === -1) qe.deletes.push(id); });
+    var baseAdded = {}, workAdded = {};
+    bq.added.forEach(function (a) { baseAdded[a.id] = a; });
+    wq.added.forEach(function (a) { workAdded[a.id] = a; });
+    bq.added.forEach(function (a) {                       /* removed locally */
+      if (!workAdded[a.id]) qe.added = qe.added.filter(function (x) { return x.id !== a.id; });
+    });
+    var used = {};
+    (W.quotes || []).forEach(function (q) { used[q.id] = 1; });
+    qe.added.forEach(function (a) { used[a.id] = 1; });
+    wq.added.forEach(function (a) {
+      if (baseAdded[a.id]) {                              /* edited locally */
+        if (J(baseAdded[a.id]) !== J(a)) qe.added = qe.added.map(function (x) { return x.id === a.id ? clone(a) : x; });
+        return;
+      }
+      var n = clone(a);                                   /* brand-new local card */
+      if (used[n.id]) {                                   /* id taken by the other device */
+        var mx = 0; Object.keys(used).forEach(function (k) { if (+k > mx) mx = +k; });
+        var old = n.id; n.id = mx + 1;
+        if (out.assign[old] && work.assign[old]) { out.assign[n.id] = out.assign[old]; if (!cur.assign[old]) delete out.assign[old]; }
+        if (out.origins[old] && work.origins[old]) { out.origins[n.id] = out.origins[old]; if (!cur.origins[old]) delete out.origins[old]; }
+      }
+      used[n.id] = 1; qe.added.push(n);
+    });
+    out.qedits = qe;
+    return out;
+  }
+  /* Looks for work saved under OTHER stamps that has a base; merges it into the
+     current published data. Returns {work, recovered:n} or null. */
+  function recoverOrphans() {
+    var pre = C.lsPrefix, mine = pre + stamp + "::", groups = {}, hasMine = false;
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key.indexOf(pre) !== 0) continue;
+        if (key.indexOf(mine) === 0) { hasMine = true; continue; }
+        var m = key.slice(pre.length).split("::");
+        (groups[m[0]] = groups[m[0]] || {})[m[1]] = key;
+      }
+      if (hasMine) return null;                           /* this stamp already has local work */
+      var cur = { tags: clone(saved.tags), assign: clone(saved.assign), origins: clone(saved.origins), qedits: clone(saved.qedits) };
+      ["order", "groups", "tags"].forEach(function (x) { if (!cur.tags[x]) cur.tags[x] = x === "order" ? [] : {}; });
+      ["edits", "deletes", "added"].forEach(function (x) { if (!cur.qedits[x]) cur.qedits[x] = x === "edits" ? {} : []; });
+      var result = null, recovered = 0;
+      Object.keys(groups).sort().forEach(function (s) {
+        var g = groups[s];
+        if (!g.base) return;
+        var base = JSON.parse(localStorage.getItem(g.base));
+        var work = {};
+        KEYS.forEach(function (x) { work[x] = g[x] ? JSON.parse(localStorage.getItem(g[x])) : clone(base[x]); });
+        ["order", "groups", "tags"].forEach(function (x) { if (!base.tags[x]) base.tags[x] = work.tags[x] = x === "order" ? [] : {}; if (!work.tags[x]) work.tags[x] = x === "order" ? [] : {}; });
+        ["edits", "deletes", "added"].forEach(function (x) { [base, work].forEach(function (o) { if (!o.qedits[x]) o.qedits[x] = x === "edits" ? {} : []; }); });
+        var changed = KEYS.some(function (x) { return J(base[x]) !== J(work[x]); });
+        if (changed) { cur = mergeWork(base, work, cur); recovered++; }
+        Object.keys(g).forEach(function (x) { localStorage.removeItem(g[x]); });
+      });
+      if (!recovered) return null;
+      return { work: cur, recovered: recovered };
+    } catch (e) { return null; }
+  }
 
   function load(k) {
     try {
@@ -30,17 +120,24 @@ window.Wisdom.Store = (function () {
     return clone(saved[k]);
   }
 
-  var work = {
+  var recovery = recoverOrphans();
+  var work = recovery ? recovery.work : {
     tags:    load("tags"),
     assign:  load("assign"),
     origins: load("origins"),
     qedits:  load("qedits")
   };
+  if (recovery) KEYS.forEach(function (k) { persist(k); });
   ["order", "groups", "tags"].forEach(function (k) { if (!work.tags[k]) work.tags[k] = (k === "order" ? [] : {}); });
   ["edits", "deletes", "added"].forEach(function (k) { if (!work.qedits[k]) work.qedits[k] = (k === "deletes" || k === "added" ? [] : {}); });
 
   function persist(k) {
-    try { localStorage.setItem(lsKey(k), JSON.stringify(work[k])); } catch (e) {}
+    try {
+      if (localStorage.getItem(lsKey("base")) == null) {    /* published data this work started from */
+        localStorage.setItem(lsKey("base"), J({ tags: saved.tags, assign: saved.assign, origins: saved.origins, qedits: saved.qedits }));
+      }
+      localStorage.setItem(lsKey(k), J(work[k]));
+    } catch (e) {}
   }
 
   /* ---------- merged card list ---------- */
@@ -209,6 +306,32 @@ window.Wisdom.Store = (function () {
     return { quotes: q, assign: a, origins: o, tags: t, any: qe || a || o || t };
   }
 
+  /* which app-written files differ from what's published */
+  function changedKeys() {
+    return KEYS.filter(function (k) { return J(work[k]) !== J(saved[k]); });
+  }
+  /* short human commit message, e.g. "Wisdom — +3 cards, tags on 12" */
+  function summary() {
+    var sq = saved.qedits, wq = work.qedits, parts = [];
+    var sAdd = {}; sq.added.forEach(function (a) { sAdd[a.id] = 1; });
+    var added = wq.added.filter(function (a) { return !sAdd[a.id]; }).length;
+    var deleted = wq.deletes.filter(function (id) { return sq.deletes.indexOf(id) === -1; }).length;
+    var edited = Object.keys(wq.edits).filter(function (id) { return J(wq.edits[id]) !== J(sq.edits[id]); }).length;
+    function diffCount(a, b) {
+      var n = 0, seen = {};
+      Object.keys(a).concat(Object.keys(b)).forEach(function (k) { if (!seen[k]) { seen[k] = 1; if (J(a[k]) !== J(b[k])) n++; } });
+      return n;
+    }
+    var tg = diffCount(saved.assign, work.assign), og = diffCount(saved.origins, work.origins);
+    if (added) parts.push("+" + added + " card" + (added > 1 ? "s" : ""));
+    if (edited) parts.push("edited " + edited);
+    if (deleted) parts.push("deleted " + deleted);
+    if (tg) parts.push("tags on " + tg);
+    if (og) parts.push("origin on " + og);
+    if (J(work.tags) !== J(saved.tags)) parts.push("tag list");
+    return "Wisdom — " + (parts.join(", ") || "update");
+  }
+
   var HEADERS = {
     tags:    "/* APP-WRITTEN by the tag manager. Safe to hand-edit. */",
     assign:  "/* APP-WRITTEN by the tagging queue. { quoteId: [tagSlug, ...] }. */",
@@ -225,15 +348,16 @@ window.Wisdom.Store = (function () {
   }
 
   function adoptSaved(newStamp) {
-    ["tags", "assign", "origins", "qedits"].forEach(function (k) {
-      saved[k] = clone(work[k]);
+    KEYS.concat("base").forEach(function (k) {
+      if (k !== "base") saved[k] = clone(work[k]);
       try { localStorage.removeItem(lsKey(k)); } catch (e) {}
     });
     stamp = String(newStamp);
   }
 
   return {
-    cards: cards, config: C,
+    cards: cards, config: C, recovered: recovery ? recovery.recovered : 0,
+    summary: summary, changedKeys: changedKeys,
     editCard: editCard, addCard: addCard, deleteCard: deleteCard,
     setTags: setTags, toggleTag: toggleTag, setOrigin: setOrigin,
     tagsMap: function () { return work.tags; },
