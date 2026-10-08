@@ -953,5 +953,6 @@ window.Wisdom.cards = [
  {"id":950,"text":"Too many years and not enough days","category":"quote"},
  {"id":951,"text":"I don’t like it, but I’m grateful for it","category":"quote"},
  {"id":952,"text":"Face Everything And Recover","category":"quote"},
- {"id":953,"text":"I need the heat on and the windows open at the same time","category":"quote"}
+ {"id":953,"text":"I need the heat on and the windows open at the same time","category":"quote"},
+ {"id":954,"text":"Test card","category":"poem","origin":"religious","tags":["step-04","aphorism","gratitude"]}
 ];
