@@ -4,10 +4,13 @@
   --paper-deep: #ECE4D0;
   --rule: #CDBF9E;
   --ink: #2A2620;
-  --ink-soft: #74695A;
+  --ink-soft: #5E5445;      /* 5.9:1 on paper-deep */
   --accent: #7A2E27;
   --accent-soft: #7A2E2714;
   --accent-line: #7A2E2755;
+  --on-accent: #F3EEE1;      /* text on accent / group fills */
+  --field-bg: #FFFFFF;       /* inputs, textarea */
+  --overlay: rgba(42,38,32,0.45);
   --card-shadow: 0 1px 0 rgba(42,38,32,0.05), 0 8px 20px -14px rgba(42,38,32,0.35);
 
   /* origin colours - a quiet left edge on the card, must sit inside the palette */
@@ -17,8 +20,56 @@
 
   /* tag-group colours - same three-colour family as origin, applied to chips */
   --tag-steps:   #7A2E27;   /* oxblood - Steps 1-12 + Traditions */
-  --tag-style:   #B08427;   /* brass - aphorism, humor, slogan… */
+  --tag-style:   #7D5C0C;   /* deep brass (text-safe, 5:1) - aphorism, humor, slogan… */
   --tag-concept: #3E5C50;   /* pine - love, humility, fear… */
+}
+
+/* ---------- Dark: lamp-lit card catalog ----------
+   Same three-colour family, lifted so text clears 4.5:1 on the dark paper.
+   Applied by OS preference (unless the toggle forced light) or forced via data-theme. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #221E18;
+  --paper-deep: #191611;
+  --rule: #4D4434;
+  --ink: #EDE5D3;
+  --ink-soft: #B5A98F;
+  --accent: #E0897D;
+  --accent-soft: #E0897D1F;
+  --accent-line: #E0897D66;
+  --on-accent: #1E1A14;
+  --field-bg: #2B261E;
+  --overlay: rgba(0,0,0,0.6);
+  --card-shadow: 0 1px 0 rgba(0,0,0,0.4), 0 8px 20px -14px rgba(0,0,0,0.8);
+  --origin-aa: #86B8A1;
+  --origin-religious: #E0897D;
+  --origin-misc: #DDB65C;
+  --tag-steps: #E0897D;
+  --tag-style: #DDB65C;
+  --tag-concept: #86B8A1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #221E18;
+    --paper-deep: #191611;
+    --rule: #4D4434;
+    --ink: #EDE5D3;
+    --ink-soft: #B5A98F;
+    --accent: #E0897D;
+    --accent-soft: #E0897D1F;
+    --accent-line: #E0897D66;
+    --on-accent: #1E1A14;
+    --field-bg: #2B261E;
+    --overlay: rgba(0,0,0,0.6);
+    --card-shadow: 0 1px 0 rgba(0,0,0,0.4), 0 8px 20px -14px rgba(0,0,0,0.8);
+    --origin-aa: #86B8A1;
+    --origin-religious: #E0897D;
+    --origin-misc: #DDB65C;
+    --tag-steps: #E0897D;
+    --tag-style: #DDB65C;
+    --tag-concept: #86B8A1;
+  }
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -32,3 +83,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* keyboard focus: one consistent ring */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hidden { display: none !important; }
+html:not([data-owner]) .owner-only { display: none !important; }

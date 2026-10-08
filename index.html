@@ -3,37 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<script>
+/* apply the saved theme before first paint (no light flash in dark mode) */
+try { var t = localStorage.getItem("wisdom_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElement.setAttribute("data-owner", "1"); } catch (e) {}
+</script>
 <title>Wisdom — A Working Index</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&amp;family=Inter:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=20261008b">
-<link rel="stylesheet" href="css/layout.css?v=20261008b">
-<link rel="stylesheet" href="css/components.css?v=20261008b">
-<style>
-  .subbar { max-width: 1180px; margin: 0 auto; padding: 8px 14px 0; text-align: right; }
-  .subbar button {
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--ink-soft);
-    background: none; border: none; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
-  }
-</style>
+<link rel="stylesheet" href="css/tokens.css?v=20261008c">
+<link rel="stylesheet" href="css/layout.css?v=20261008c">
+<link rel="stylesheet" href="css/components.css?v=20261008c">
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-row">
     <span class="stamp">Wisdom</span>
-    <input id="search" type="search" placeholder="Search…" autocomplete="off">
-    <button class="icon-btn primary" id="addBtn" aria-label="Add a card">+</button>
+    <span class="spacer"></span>
     <button class="icon-btn" id="drawBtn">Draw</button>
-    <button class="icon-btn" id="tagBtn">Tag</button>
-    <button class="icon-btn" id="saveBtn">Save</button>
+    <button class="icon-btn" id="themeBtn" aria-label="Switch between light and dark">◐</button>
     <button class="icon-btn" id="settingsBtn" aria-label="Site settings">⚙</button>
   </div>
+  <div class="search-row"><input id="search" type="search" placeholder="Search…" aria-label="Search the collection" autocomplete="off"></div>
   <div class="tabs" id="tabs" role="tablist"></div>
 </div>
 
-<div class="subbar"><button id="tagManBtn">Tag manager</button></div>
+<div class="subbar owner-only">
+  <button class="icon-btn primary" id="addBtn">+ Add card</button>
+  <button class="icon-btn" id="tagBtn">Tag</button>
+  <button class="icon-btn" id="tagManBtn">Tag manager</button>
+</div>
 
 <nav class="facets" id="facetNav"></nav>
 
@@ -43,26 +45,28 @@
   <div class="grid" id="grid"></div>
 </main>
 
-<footer>+ files a new card · edit changes text, category, tags or origin · Tag opens the tagging queue · Save publishes every change to the site · ⚙ holds the site connection.</footer>
+<footer><span class="owner-only">+ files a new card · edit changes text, category, tags or origin · Tag opens the tagging queue · Save publishes every change to the site · ⚙ holds the site connection.</span><span class="reader-only">Tap a tag to filter · Draw pulls a card at random · ◐ switches light and dark.</span></footer>
 
 <!-- draw -->
-<div class="draw-overlay hidden" id="drawOverlay" role="dialog" aria-label="Random card">
+<div class="draw-overlay hidden" id="drawOverlay" role="dialog" aria-modal="true" aria-label="Random card">
   <div class="draw-card">
     <span class="draw-label">drawn at random</span>
     <span class="id" id="drawId"></span>
     <div class="quote" id="drawQuote"></div>
     <div class="tags" id="drawTags"></div>
     <div class="draw-actions">
+      <button id="drawBack" class="quiet" aria-label="Previous card">‹ Back</button>
       <button class="primary" id="drawAgain">Draw again</button>
+      <button id="drawEdit" class="owner-only">Edit</button>
       <button id="drawClose">Put it back</button>
     </div>
   </div>
 </div>
 
 <!-- settings -->
-<div class="modal hidden" id="settingsModal">
+<div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="modal-card">
-    <h2>Site connection</h2>
+    <h2 id="settingsTitle">Site connection</h2>
     <p class="modal-hint">Lets Save write straight back to your GitHub site. The token is stored only in this browser on this device — it never goes into the site files, so people you share the link with can read but never change anything.</p>
     <label class="cfg-label" for="cfgOwner">GitHub username</label>
     <input class="cfg-input" id="cfgOwner" autocomplete="off" autocapitalize="none" placeholder="GitHub username">
@@ -70,7 +74,7 @@
     <input class="cfg-input" id="cfgRepo" autocomplete="off" autocapitalize="none" placeholder="e.g. Wisdom">
     <label class="cfg-label" for="cfgToken">Personal access token</label>
     <input class="cfg-input" id="cfgToken" type="password" autocomplete="off" placeholder="github_pat_…">
-    <p class="modal-hint" style="margin-top:10px">Fine-grained token, scoped to ONLY this repository, permission Contents: read and write. If it leaks or expires, delete it on GitHub and paste a new one.</p>
+    <p class="modal-hint spaced">Fine-grained token, scoped to ONLY this repository, permission Contents: read and write. If it leaks or expires, delete it on GitHub and paste a new one.</p>
     <div class="modal-actions">
       <button class="danger" id="cfgClear">Forget token</button>
       <div class="right">
@@ -82,7 +86,7 @@
 </div>
 
 <!-- edit -->
-<div class="modal hidden" id="editModal">
+<div class="modal hidden" id="editModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal-card">
     <h2 id="modalTitle">File a new card</h2>
     <p class="modal-hint">Changes stay on this device until you hit Save.</p>
@@ -103,9 +107,9 @@
 </div>
 
 <!-- tag manager -->
-<div class="modal hidden" id="tagManModal">
+<div class="modal hidden" id="tagManModal" role="dialog" aria-modal="true" aria-labelledby="tagManTitle">
   <div class="modal-card">
-    <h2>Tag manager</h2>
+    <h2 id="tagManTitle">Tag manager</h2>
     <p class="modal-hint">Rename, regroup, merge or delete tags. Counts are across every tab.</p>
     <div id="tagManBody"></div>
     <div class="modal-actions"><div class="right"><button class="primary" id="tagManClose">Done</button></div></div>
@@ -113,9 +117,10 @@
 </div>
 
 <!-- tagging queue -->
-<div class="queue hidden" id="queue" role="dialog" aria-label="Tagging queue"></div>
+<div class="queue hidden" id="queue" role="dialog" aria-modal="true" aria-label="Tagging queue"></div>
 
-<div class="save-status hidden" id="saveStatus"></div>
+<button class="save-fab owner-only hidden" id="saveBtn">Save</button>
+<div class="save-status hidden" id="saveStatus" role="status" aria-live="polite"></div>
 
 <!-- data (generated + app-written; plain scripts so file:// works).
      GitHub Pages' CDN caches files ~10 min, which served stale data right after
@@ -139,13 +144,13 @@
 </script>
 
 <!-- app -->
-<script src="js/config.js?v=20261008b"></script>
-<script src="js/util.js?v=20261008b"></script>
-<script src="js/store.js?v=20261008b"></script>
-<script src="js/github.js?v=20261008b"></script>
-<script src="js/render.js?v=20261008b"></script>
-<script src="js/modals.js?v=20261008b"></script>
-<script src="js/tagger.js?v=20261008b"></script>
-<script src="js/app.js?v=20261008b"></script>
+<script src="js/config.js?v=20261008c"></script>
+<script src="js/util.js?v=20261008c"></script>
+<script src="js/store.js?v=20261008c"></script>
+<script src="js/github.js?v=20261008c"></script>
+<script src="js/render.js?v=20261008c"></script>
+<script src="js/modals.js?v=20261008c"></script>
+<script src="js/tagger.js?v=20261008c"></script>
+<script src="js/app.js?v=20261008c"></script>
 </body>
 </html>

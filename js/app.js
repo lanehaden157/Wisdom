@@ -33,7 +33,27 @@
 
   if (W.Store.recovered) W.toast("The site was updated elsewhere — your unsaved changes were carried over. Review, then Save.", true);
 
+  /* theme: follows the OS until the ◐ button is used, then remembers the choice */
+  var root = document.documentElement;
+  function effectiveTheme() {
+    return root.getAttribute("data-theme") ||
+      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  }
+  function syncThemeColor() {
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
+    m.content = getComputedStyle(document.body).backgroundColor;
+  }
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var next = effectiveTheme() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("wisdom_theme", next); } catch (e) {}
+    syncThemeColor();
+  });
+  syncThemeColor();
+
   W.Modals.wire();
+  W.setOwner(W.isOwner());
   W.Tagger.wire();
   W.UI.renderAll();
 })();

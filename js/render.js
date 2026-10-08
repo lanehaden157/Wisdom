@@ -6,7 +6,7 @@ window.Wisdom.UI = (function () {
   var Store = W.Store;
   var el = W.util.el, cardNo = W.util.cardNo;
 
-  var state = { category: "quote", query: "", selectedTags: new Set() };
+  var state = { category: "quote", query: "", selectedTags: new Set(), tagMode: "and" };
   var facetOpen = {};
 
   function isReading(cat) { return C.readingCategories.indexOf(cat) !== -1; }
@@ -19,7 +19,9 @@ window.Wisdom.UI = (function () {
     if (q && c.text.toLowerCase().indexOf(q) === -1) return false;
     if (state.selectedTags.size) {
       if (state.selectedTags.has("__untagged__")) return c.tags.length === 0;
-      if (!c.tags.some(function (t) { return state.selectedTags.has(t); })) return false;
+      var picked = Array.from(state.selectedTags);
+      var has = function (t) { return c.tags.indexOf(t) !== -1; };
+      if (state.tagMode === "or" ? !picked.some(has) : !picked.every(has)) return false;
     }
     return true;
   }
@@ -143,12 +145,22 @@ window.Wisdom.UI = (function () {
     var desc = [];
     if (state.selectedTags.size) {
       desc.push(state.selectedTags.has("__untagged__") ? "untagged"
-        : "tagged " + Array.from(state.selectedTags).join(" or "));
+        : "tagged " + Array.from(state.selectedTags).join(state.tagMode === "or" ? " or " : " + "));
     }
     if (state.query.trim()) desc.push('matching "' + state.query.trim() + '"');
     meta.appendChild(el("span", null,
       filtered.length + " of " + viewCards.length + " " + C.categoryLabel[state.category].toLowerCase() +
       (desc.length ? " — " + desc.join(", ") : "")));
+    var multi = state.selectedTags.size > 1 && !state.selectedTags.has("__untagged__");
+    if (multi) {
+      var mm = el("span", "match-mode");
+      mm.appendChild(el("span", null, "match"));
+      var host = el("span");
+      W.segmented(host, [{ value: "and", label: "all tags" }, { value: "or", label: "any tag" }], state.tagMode,
+        function (v) { state.tagMode = v; renderAll(); });
+      mm.appendChild(host);
+      meta.appendChild(mm);
+    }
     if (state.selectedTags.size || state.query.trim()) {
       var clr = el("button", "ghost", "Clear");
       clr.addEventListener("click", function () {
@@ -189,10 +201,11 @@ window.Wisdom.UI = (function () {
           tags.appendChild(chip);
         });
       } else {
-        tags.appendChild(el("span", "tag-chip untagged", "untagged"));
+        tags.appendChild(el("span", "tag-chip untagged owner-only", "untagged"));
       }
       foot.appendChild(tags);
-      var edit = el("button", "edit-btn", "edit");
+      var edit = el("button", "edit-btn owner-only", "edit");
+      edit.setAttribute("aria-label", "Edit " + cardNo(c.id));
       edit.type = "button";
       edit.addEventListener("click", function () { W.Modals.openEdit(c); });
       foot.appendChild(edit);
@@ -204,13 +217,16 @@ window.Wisdom.UI = (function () {
   function renderPending() {
     var note = document.getElementById("pendingNote");
     var p = Store.pending();
-    if (!p.any) { note.classList.add("hidden"); note.innerHTML = ""; return; }
+    var fab = document.getElementById("saveBtn");
+    fab.classList.toggle("hidden", !p.any);
+    if (!p.any) { note.classList.add("hidden"); note.textContent = ""; return; }
     var bits = [];
     if (p.quotes) bits.push(p.quotes + " card" + (p.quotes > 1 ? "s" : ""));
     if (p.assign) bits.push("tags");
     if (p.origins) bits.push("origins");
     if (p.tags) bits.push("tag list");
     note.classList.remove("hidden");
+    note.className = "pending-note owner-only";
     note.textContent = "Unsaved: " + bits.join(", ") + " — hit Save to publish.";
   }
 

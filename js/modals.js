@@ -26,80 +26,163 @@ window.Wisdom.Modals = (function () {
     container.appendChild(seg);
   }
 
-  /* ---- shared: grouped tag picker with inline create ---- */
+  /* ---- recently used tags (per device, survives publishes) ---- */
+  var RECENT_KEY = "wisdom_recent_tags_v1";
+  function recentTags() {
+    var tags = Store.tagsMap().tags;
+    return W.util.lsGet(RECENT_KEY, []).filter(function (s) { return tags[s]; });
+  }
+  function noteRecent(slug) {
+    var r = recentTags().filter(function (s) { return s !== slug; });
+    W.util.lsSet(RECENT_KEY, [slug].concat(r).slice(0, 10));
+  }
+
+  /* ---- shared: fast tag picker ----
+     Selected tags on top (tap to drop), search-to-pick, recent tags, and the
+     full grouped list tucked behind "Browse all". Enter in the search box picks
+     the single match or creates the tag. */
   function tagPicker(container, chosenSet, onChange) {
-    function draw() {
-      container.innerHTML = "";
+    container.innerHTML = "";
+    var selBox = el("div", "picker-sel");
+    var search = document.createElement("input");
+    search.type = "search"; search.className = "picker-search";
+    search.placeholder = "Find or add a tag…";
+    search.setAttribute("aria-label", "Find or add a tag");
+    search.autocomplete = "off";
+    var hits = el("div", "picker-hits");
+    var recentBox = el("div");
+    var all = el("details", "picker-all");
+    all.appendChild(el("summary", null, "Browse all tags"));
+    var allBody = el("div");
+    all.appendChild(allBody);
+    [selBox, search, hits, recentBox, all].forEach(function (n) { container.appendChild(n); });
+
+    function tagChip(slug, extra) {
+      var t = Store.tagsMap().tags[slug];
+      var on = chosenSet.has(slug);
+      var chip = el("button", "chip" + (on ? " active" : ""), t ? t.label : slug);
+      chip.type = "button";
+      chip.setAttribute("aria-pressed", on ? "true" : "false");
+      if (t) chip.setAttribute("data-group", t.group);
+      chip.addEventListener("click", function () { toggle(slug); });
+      return chip;
+    }
+    function toggle(slug) {
+      if (chosenSet.has(slug)) chosenSet.delete(slug); else { chosenSet.add(slug); noteRecent(slug); }
+      onChange();
+      redraw();
+    }
+    function matchesFor(q) {
+      var tags = Store.tagsMap().tags;
+      q = q.trim().toLowerCase();
+      if (!q) return [];
+      return Object.keys(tags).filter(function (s) {
+        return tags[s].label.toLowerCase().indexOf(q) !== -1 || s.indexOf(q) !== -1;
+      }).sort(function (a, b) {
+        var ap = tags[a].label.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+        var bp = tags[b].label.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+        return ap - bp || tags[a].label.localeCompare(tags[b].label);
+      });
+    }
+    function exact(q) {
+      var tags = Store.tagsMap().tags;
+      q = q.trim().toLowerCase();
+      return Object.keys(tags).filter(function (s) { return tags[s].label.toLowerCase() === q; })[0];
+    }
+    function create(q) {
+      var slug = Store.createTag(q.trim(), "Concept");
+      if (slug) { chosenSet.add(slug); noteRecent(slug); search.value = ""; onChange(); redraw(); }
+    }
+
+    function redraw() {
       var tm = Store.tagsMap();
-      var order = (tm.order || []).slice();
-      var bySlug = tm.tags;
-      var byGroup = {};
-      Object.keys(bySlug).forEach(function (s) {
-        var g = bySlug[s].group || "Other";
+      selBox.innerHTML = "";
+      Array.from(chosenSet).forEach(function (s) {
+        var t = tm.tags[s];
+        var chip = el("button", "chip active", t ? t.label : s);
+        chip.type = "button";
+        chip.setAttribute("aria-label", "Remove tag " + (t ? t.label : s));
+        if (t) chip.setAttribute("data-group", t.group);
+        chip.appendChild(el("span", "x", "×"));
+        chip.addEventListener("click", function () { toggle(s); });
+        selBox.appendChild(chip);
+      });
+
+      hits.innerHTML = "";
+      var q = search.value;
+      if (q.trim()) {
+        var row = el("div", "chip-row");
+        matchesFor(q).slice(0, 12).forEach(function (s) { row.appendChild(tagChip(s)); });
+        if (!exact(q)) {
+          var mk = el("button", "chip create", "+ create “" + q.trim() + "”");
+          mk.type = "button";
+          mk.addEventListener("click", function () { create(q); });
+          row.appendChild(mk);
+        }
+        hits.appendChild(row);
+      }
+
+      recentBox.innerHTML = "";
+      var rec = recentTags();
+      if (rec.length && !q.trim()) {
+        recentBox.appendChild(el("span", "field-label", "recent"));
+        var rr = el("div", "chip-row");
+        rec.forEach(function (s) { rr.appendChild(tagChip(s)); });
+        recentBox.appendChild(rr);
+      }
+
+      allBody.innerHTML = "";
+      var order = (tm.order || []).slice(), byGroup = {};
+      Object.keys(tm.tags).forEach(function (s) {
+        var g = tm.tags[s].group || "Other";
         (byGroup[g] = byGroup[g] || []).push(s);
       });
       Object.keys(byGroup).forEach(function (g) { if (order.indexOf(g) === -1) order.push(g); });
-
       order.forEach(function (g) {
         var slugs = (byGroup[g] || []).sort();
         if (!slugs.length) return;
         var lbl = el("span", "field-label", g);
         lbl.setAttribute("data-group", g);
-        container.appendChild(lbl);
-        var row = el("div", "chip-row");
-        slugs.forEach(function (s) {
-          var chip = el("button", "chip" + (chosenSet.has(s) ? " active" : ""), bySlug[s].label);
-          chip.type = "button";
-          chip.setAttribute("data-group", g);
-          chip.addEventListener("click", function () {
-            if (chosenSet.has(s)) chosenSet.delete(s); else chosenSet.add(s);
-            chip.classList.toggle("active");
-            onChange();
-          });
-          row.appendChild(chip);
-        });
-        container.appendChild(row);
+        allBody.appendChild(lbl);
+        var gr = el("div", "chip-row");
+        slugs.forEach(function (s) { gr.appendChild(tagChip(s)); });
+        allBody.appendChild(gr);
       });
-
-      var mk = el("div", "field-row");
-      var inp = document.createElement("input");
-      inp.className = "cfg-input";
-      inp.placeholder = "new tag…";
-      inp.style.flex = "1";
-      var grp = document.createElement("select");
-      grp.className = "cfg-input";
-      grp.style.flex = "0 0 40%";
-      var defaultGroup = "Concept";
-      (Store.tagsMap().order || [defaultGroup]).forEach(function (g) {
-        var o = document.createElement("option"); o.value = g; o.textContent = g;
-        if (g === defaultGroup) o.selected = true;
-        grp.appendChild(o);
-      });
-      var add = el("button", null, "+ create");
-      add.type = "button";
-      add.style.cssText = "font-family:'IBM Plex Mono',monospace;font-size:.72rem;border:1px solid var(--rule);background:var(--accent);color:#F3EEE1;border-radius:4px;padding:8px 12px;cursor:pointer";
-      function create() {
-        var label = inp.value.trim();
-        if (!label) return;
-        var slug = Store.createTag(label, grp.value);
-        if (slug) { chosenSet.add(slug); inp.value = ""; draw(); onChange(); }
-      }
-      add.addEventListener("click", create);
-      inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); create(); } });
-      mk.appendChild(inp); mk.appendChild(grp); mk.appendChild(add);
-      container.appendChild(mk);
     }
-    draw();
+
+    search.addEventListener("input", redraw);
+    search.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      var q = search.value;
+      if (!q.trim()) return;
+      var ex = exact(q), m = matchesFor(q);
+      if (ex) { toggle(ex); search.value = ""; redraw(); }
+      else if (m.length === 1) { toggle(m[0]); search.value = ""; redraw(); }
+      else if (!m.length) create(q);
+    });
+    redraw();
   }
   W.tagPicker = tagPicker;
   W.segmented = segmented;
 
-  /* ---- edit modal ---- */
-  var modal, card = null, chosen = new Set(), cat = "quote", origin = null, delArmed = false;
+  /* ---- owner mode: edit controls only exist while a token is connected ---- */
+  function setOwner(on) {
+    if (on) document.documentElement.setAttribute("data-owner", "1");
+    else document.documentElement.removeAttribute("data-owner");
+    document.body.classList.toggle("owner", !!on);
+  }
+  W.setOwner = setOwner;
+  function isOwner() { var c = W.Github.loadConfig(); return !!(c && c.token); }
+  W.isOwner = isOwner;
 
-  function openEdit(c) {
+  /* ---- edit modal ---- */
+  var modal, card = null, chosen = new Set(), cat = "quote", origin = null, delArmed = false, afterEdit = null;
+
+  function openEdit(c, onDone) {
     modal = $("editModal");
     card = c || null;
+    afterEdit = onDone || null;
     delArmed = false;
     chosen = new Set(card ? card.tags : []);
     cat = card ? card.category : W.UI.state.category;
@@ -119,18 +202,15 @@ window.Wisdom.Modals = (function () {
       origin, function (v) { origin = v; });
     tagPicker($("modalFacets"), chosen, function () {});
 
-    modal.classList.remove("hidden");
-    if (!card) $("editQuoteText").focus();
+    W.Dialog.show(modal, { onClose: close, focus: card ? $("cancelEdit") : $("editQuoteText") });
   }
-  function close() { modal.classList.add("hidden"); card = null; }
+  function close() { W.Dialog.hide(modal); card = null; }
+  function done() { var f = afterEdit; afterEdit = null; W.UI.renderAll(); if (f) f(); }
 
   function wire() {
     $("addBtn").addEventListener("click", function () { openEdit(null); });
     $("cancelEdit").addEventListener("click", close);
     $("editModal").addEventListener("click", function (e) { if (e.target === $("editModal")) close(); });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !$("editModal").classList.contains("hidden")) close();
-    });
     $("saveEdit").addEventListener("click", function () {
       var text = $("editQuoteText").value.trim();
       if (!text) { $("editQuoteText").focus(); return; }
@@ -139,14 +219,14 @@ window.Wisdom.Modals = (function () {
       Store.setTags(id, Array.from(chosen));
       Store.setOrigin(id, origin);
       close();
-      W.UI.renderAll();
+      done();
     });
     $("deleteCard").addEventListener("click", function () {
       if (!card) return;
       if (!delArmed) { delArmed = true; this.textContent = "Tap again to remove"; this.classList.add("confirming"); return; }
       Store.deleteCard(card.id);
       close();
-      W.UI.renderAll();
+      done();
     });
 
     /* settings */
@@ -156,11 +236,11 @@ window.Wisdom.Modals = (function () {
       $("cfgOwner").value = cfg.owner || "";
       $("cfgRepo").value = cfg.repo || "";
       $("cfgToken").value = cfg.token || "";
-      sm.classList.remove("hidden");
+      W.Dialog.show(sm, { onClose: closeSettings });
     }
     function closeSettings() {
       ["cfgOwner", "cfgRepo", "cfgToken"].forEach(function (i) { $(i).value = ""; });
-      sm.classList.add("hidden");
+      W.Dialog.hide(sm);
     }
     W.openSettings = openSettings;
     $("settingsBtn").addEventListener("click", openSettings);
@@ -170,21 +250,29 @@ window.Wisdom.Modals = (function () {
       var cfg = { owner: $("cfgOwner").value.trim(), repo: $("cfgRepo").value.trim(), token: $("cfgToken").value.trim() };
       if (!cfg.owner || !cfg.repo || !cfg.token) { W.toast("All three fields are needed"); return; }
       W.Github.saveConfig(cfg); closeSettings();
+      setOwner(true); W.UI.renderAll();
       W.toast("Connected — Save now writes to your site");
     });
-    $("cfgClear").addEventListener("click", function () { W.Github.clearConfig(); closeSettings(); W.toast("Token forgotten on this device"); });
+    $("cfgClear").addEventListener("click", function () {
+      W.Github.clearConfig(); closeSettings();
+      setOwner(false); W.UI.renderAll();
+      W.toast("Token forgotten on this device");
+    });
 
-    /* draw */
-    var ov = $("drawOverlay"), last = null;
+    /* draw - keeps a history so Back returns to the previous card */
+    var ov = $("drawOverlay"), hist = [], pos = -1;
+    function byId(id) { return Store.cards().filter(function (c) { return c.id === id; })[0]; }
     function pool() {
       var v = W.UI.inCategory(Store.cards()).filter(W.UI.matches);
       return v.length ? v : W.UI.inCategory(Store.cards());
     }
-    function one() {
-      var p = pool(), pick;
-      if (p.length === 1) pick = p[0];
-      else do { pick = p[Math.floor(Math.random() * p.length)]; } while (pick.id === last);
-      last = pick.id;
+    function paint() {
+      var pick = byId(hist[pos]);
+      while (!pick && hist.length) {            /* card was removed meanwhile */
+        hist.splice(pos, 1); pos = Math.min(pos, hist.length - 1);
+        pick = hist.length ? byId(hist[pos]) : null;
+      }
+      if (!pick) { fresh(); return; }
       $("drawId").textContent = cardNo(pick.id);
       $("drawQuote").textContent = pick.text;
       var tw = $("drawTags"); tw.innerHTML = "";
@@ -194,17 +282,38 @@ window.Wisdom.Modals = (function () {
         ch.type = "button";
         if (tm.tags[s]) ch.setAttribute("data-group", tm.tags[s].group);
         ch.addEventListener("click", function () {
-          ov.classList.add("hidden");
+          closeDraw();
           W.UI.state.selectedTags.clear(); W.UI.state.selectedTags.add(s);
           W.UI.renderAll();
         });
         tw.appendChild(ch);
       });
+      $("drawBack").disabled = pos <= 0;
     }
-    $("drawBtn").addEventListener("click", function () { ov.classList.remove("hidden"); one(); $("drawAgain").focus(); });
-    $("drawAgain").addEventListener("click", one);
-    $("drawClose").addEventListener("click", function () { ov.classList.add("hidden"); });
-    ov.addEventListener("click", function (e) { if (e.target === ov) ov.classList.add("hidden"); });
+    function fresh() {
+      var p = pool(), cur = hist[pos], pick;
+      if (!p.length) return;
+      if (p.length === 1) pick = p[0];
+      else do { pick = p[Math.floor(Math.random() * p.length)]; } while (pick.id === cur);
+      hist = hist.slice(0, pos + 1); hist.push(pick.id);
+      if (hist.length > 60) hist.shift();
+      pos = hist.length - 1;
+      paint();
+    }
+    function again() { if (pos < hist.length - 1) { pos++; paint(); } else fresh(); }
+    function closeDraw() { W.Dialog.hide(ov); }
+    $("drawBtn").addEventListener("click", function () {
+      W.Dialog.show(ov, { onClose: closeDraw, focus: $("drawAgain") });
+      fresh();
+    });
+    $("drawAgain").addEventListener("click", again);
+    $("drawBack").addEventListener("click", function () { if (pos > 0) { pos--; paint(); } });
+    $("drawEdit").addEventListener("click", function () {
+      var c = byId(hist[pos]);
+      if (c) openEdit(c, paint);
+    });
+    $("drawClose").addEventListener("click", closeDraw);
+    ov.addEventListener("click", function (e) { if (e.target === ov) closeDraw(); });
   }
 
   return { openEdit: openEdit, wire: wire };

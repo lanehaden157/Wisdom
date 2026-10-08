@@ -8,7 +8,7 @@ window.Wisdom.Tagger = (function () {
   var el = W.util.el, $ = W.util.$, cardNo = W.util.cardNo;
 
   /* ================= tagging queue ================= */
-  var q = { list: [], i: 0, order: "sequential", scope: "untagged", recent: [], tagged: 0, skipped: 0, sinceSave: 0 };
+  var q = { list: [], i: 0, order: "sequential", scope: "untagged", tagged: 0, skipped: 0, sinceSave: 0 };
 
   function buildList() {
     var all = Store.cards();
@@ -24,14 +24,10 @@ window.Wisdom.Tagger = (function () {
   function open() {
     q.i = 0; q.tagged = 0; q.skipped = 0; q.sinceSave = 0;
     buildList();
-    $("queue").classList.remove("hidden");
+    W.Dialog.show($("queue"), { onClose: closeQ });
     render();
   }
-  function closeQ() { $("queue").classList.add("hidden"); W.UI.renderAll(); }
-
-  function pushRecent(slug) {
-    q.recent = [slug].concat(q.recent.filter(function (s) { return s !== slug; })).slice(0, 12);
-  }
+  function closeQ() { W.Dialog.hide($("queue")); W.UI.renderAll(); }
 
   function render() {
     var wrap = $("queue");
@@ -81,27 +77,9 @@ window.Wisdom.Tagger = (function () {
       live.origin, function (v) { Store.setOrigin(live.id, v); });
     scroll.appendChild(originWrap);
 
-    if (q.recent.length) {
-      scroll.appendChild(el("span", "field-label", "recent"));
-      var rr = el("div", "chip-row");
-      q.recent.forEach(function (s) {
-        var tm = Store.tagsMap().tags[s];
-        var chip = el("button", "chip" + (chosen.has(s) ? " active" : ""), tm ? tm.label : s);
-        chip.type = "button";
-        if (tm) chip.setAttribute("data-group", tm.group);
-        chip.addEventListener("click", function () {
-          var cur = Store.toggleTag(live.id, s);
-          chosen = new Set(cur); pushRecent(s); render();
-        });
-        rr.appendChild(chip);
-      });
-      scroll.appendChild(rr);
-    }
-
     var picker = el("div");
     W.tagPicker(picker, chosen, function () {
       Store.setTags(live.id, Array.from(chosen));
-      Array.from(chosen).forEach(pushRecent);
     });
     scroll.appendChild(picker);
     wrap.appendChild(scroll);
@@ -118,6 +96,7 @@ window.Wisdom.Tagger = (function () {
     });
     nav.appendChild(back); nav.appendChild(skip); nav.appendChild(next);
     wrap.appendChild(nav);
+    if (!wrap.contains(document.activeElement)) next.focus({ preventScroll: true });
   }
 
   function advance() {
@@ -128,6 +107,7 @@ window.Wisdom.Tagger = (function () {
   }
 
   /* ================= tag manager ================= */
+  var merging = null;
   function openManager() {
     var m = $("tagManModal");
     var body = $("tagManBody");
@@ -138,7 +118,7 @@ window.Wisdom.Tagger = (function () {
       var slugs = Object.keys(tm.tags).sort(function (a, b) { return (counts[b] || 0) - (counts[a] || 0); });
       if (!slugs.length) body.appendChild(el("p", "modal-hint", "No tags yet — create them as you tag cards."));
       slugs.forEach(function (s) {
-        var row = el("div", "tagman-row");
+        var row = el("div", "tagman-row" + (merging === s ? " merging" : ""));
         row.setAttribute("data-group", tm.tags[s].group);
         var name = el("span", "slug", tm.tags[s].label);
         name.title = s;
@@ -160,11 +140,8 @@ window.Wisdom.Tagger = (function () {
         });
         row.appendChild(ren);
 
-        var mrg = el("button", null, "merge→");
-        mrg.addEventListener("click", function () {
-          var into = prompt("Merge “" + tm.tags[s].label + "” into which tag slug?\n\n" + slugs.join(", "));
-          if (into && tm.tags[into]) { Store.mergeTags(s, into); draw(); }
-        });
+        var mrg = el("button", null, "merge");
+        mrg.addEventListener("click", function () { merging = merging === s ? null : s; draw(); });
         row.appendChild(mrg);
 
         var del = el("button", null, "delete");
@@ -173,21 +150,39 @@ window.Wisdom.Tagger = (function () {
         });
         row.appendChild(del);
         body.appendChild(row);
+
+        if (merging === s) {                       /* pick the target from a list */
+          var mr = el("div", "tagman-row merging");
+          mr.setAttribute("data-group", tm.tags[s].group);
+          mr.appendChild(el("span", "mergeto", "Move every “" + tm.tags[s].label + "” card into:"));
+          var pick = document.createElement("select");
+          pick.setAttribute("aria-label", "Merge into");
+          slugs.filter(function (o) { return o !== s; }).forEach(function (o) {
+            var op = document.createElement("option"); op.value = o;
+            op.textContent = tm.tags[o].label + " (" + (counts[o] || 0) + ")"; pick.appendChild(op);
+          });
+          mr.appendChild(pick);
+          var go = el("button", "go", "Merge");
+          go.addEventListener("click", function () { Store.mergeTags(s, pick.value); merging = null; draw(); });
+          var no = el("button", null, "Cancel");
+          no.addEventListener("click", function () { merging = null; draw(); });
+          mr.appendChild(go); mr.appendChild(no);
+          body.appendChild(mr);
+        }
       });
     }
+    merging = null;
     draw();
-    m.classList.remove("hidden");
+    W.Dialog.show(m, { onClose: closeManager });
   }
+  function closeManager() { W.Dialog.hide($("tagManModal")); W.UI.renderAll(); }
 
   function wire() {
     $("tagBtn").addEventListener("click", open);
     $("tagManBtn").addEventListener("click", openManager);
-    $("tagManClose").addEventListener("click", function () { $("tagManModal").classList.add("hidden"); W.UI.renderAll(); });
+    $("tagManClose").addEventListener("click", closeManager);
     $("tagManModal").addEventListener("click", function (e) {
-      if (e.target === $("tagManModal")) { $("tagManModal").classList.add("hidden"); W.UI.renderAll(); }
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !$("queue").classList.contains("hidden")) closeQ();
+      if (e.target === $("tagManModal")) closeManager();
     });
   }
 
