@@ -1,6 +1,6 @@
 /* ---------- Working state: published data + localStorage overlay ----------
    Two mutable objects, held as full working copies:
-     cards  { id: {id, text, category, origin?, tags?} }   <- data/cards.js
+     cards  { id: {id, text, category, origin?, tags?, kw?} }   <- data/cards.js
      tags   { order, groups, tags }                        <- data/tags.js
    Every mutation writes the working copy to localStorage, namespaced by the
    publish stamp, plus a "base" snapshot of the published data the work started
@@ -15,16 +15,18 @@ window.Wisdom.Store = (function () {
 
   var stamp = String(W.stamp || "0");
   var KEYS = ["cards", "tags"];
-  var FIELDS = ["text", "category", "origin", "tags"];
+  var FIELDS = ["text", "category", "origin", "tags", "kw"];
   function lsKey(k) { return C.lsPrefix + stamp + "::" + k; }
   function J(x) { return JSON.stringify(x); }
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
-  /* canonical card: fixed key order, empty origin/tags omitted (matches cards.js on disk) */
+  /* canonical card: fixed key order, empty origin/tags/kw omitted (matches cards.js on disk).
+     kw = hidden search keywords, never rendered */
   function norm(c) {
     var o = { id: c.id, text: c.text, category: c.category };
     if (c.origin) o.origin = c.origin;
     if (c.tags && c.tags.length) o.tags = c.tags.slice();
+    if (c.kw) o.kw = c.kw;
     return o;
   }
   function toMap(list) {
@@ -71,7 +73,7 @@ window.Wisdom.Store = (function () {
       } else if (c) {                                     /* field-level: keep this device's changes */
         FIELDS.forEach(function (f) {
           if (J(b[f]) === J(w[f])) return;
-          if (w[f] === undefined || (f === "tags" && !w[f].length)) delete c[f]; else c[f] = clone(w[f]);
+          if (w[f] === undefined || ((f === "tags" || f === "kw") && !w[f].length)) delete c[f]; else c[f] = clone(w[f]);
         });
         res[k] = norm(c);
       }                                                   /* else: deleted elsewhere - that wins */
@@ -146,7 +148,7 @@ window.Wisdom.Store = (function () {
       var s = saved.cards[c.id];
       return {
         id: c.id, text: c.text, category: c.category,
-        tags: (c.tags || []).slice(), origin: c.origin || null,
+        tags: (c.tags || []).slice(), origin: c.origin || null, kw: c.kw || "",
         added: !s,
         edited: !!s && (s.text !== c.text || s.category !== c.category)
       };
@@ -290,7 +292,7 @@ window.Wisdom.Store = (function () {
   }
 
   var HEADERS = {
-    cards: "/* APP-WRITTEN. One object per card: {id, text, category, origin?, tags?}. */",
+    cards: "/* APP-WRITTEN. One object per card: {id, text, category, origin?, tags?, kw?}. */",
     tags:  "/* APP-WRITTEN by the tag manager. Safe to hand-edit. */",
     stamp: "/* APP-WRITTEN. Bumped on every publish; namespaces localStorage. */"
   };

@@ -111,6 +111,8 @@ def main():
         for s in r.get("tags", []):
             if s not in known_tags:
                 fail(f"id {i}: uses unknown tag {s!r}")
+        if "kw" in r and (not isinstance(r["kw"], str) or not r["kw"].strip()):
+            fail(f"id {i}: kw must be a non-empty string")
         if len(set(r.get("tags", []))) != len(r.get("tags", [])):
             fail(f"id {i}: duplicate tags")
         for pat in PII_PATTERNS:

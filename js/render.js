@@ -16,7 +16,7 @@ window.Wisdom.UI = (function () {
   }
   function matches(c) {
     var q = state.query.trim().toLowerCase();
-    if (q && c.text.toLowerCase().indexOf(q) === -1) return false;
+    if (q && c.text.toLowerCase().indexOf(q) === -1 && c.kw.toLowerCase().indexOf(q) === -1) return false;
     if (state.selectedTags.size) {
       if (state.selectedTags.has("__untagged__")) return c.tags.length === 0;
       var picked = Array.from(state.selectedTags);
