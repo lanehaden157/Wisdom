@@ -457,3 +457,15 @@ details.picker-all[open] > summary::before { transform: rotate(90deg); }
   border-radius: 2px;
   cursor: pointer;
 }
+
+/* tagging queue: 1-9 keyboard hints on the recent tags */
+.queue .chip[data-key]::before {
+  content: attr(data-key);
+  margin-right: 6px;
+  padding: 0 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.75;
+}

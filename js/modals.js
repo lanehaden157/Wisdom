@@ -127,7 +127,11 @@ window.Wisdom.Modals = (function () {
       if (rec.length && !q.trim()) {
         recentBox.appendChild(el("span", "field-label", "recent"));
         var rr = el("div", "chip-row");
-        rec.forEach(function (s) { rr.appendChild(tagChip(s)); });
+        rec.forEach(function (s, i) {
+          var ch = tagChip(s);
+          if (i < 9) ch.setAttribute("data-key", i + 1);   /* tagging queue: press 1-9 */
+          rr.appendChild(ch);
+        });
         recentBox.appendChild(rr);
       }
 

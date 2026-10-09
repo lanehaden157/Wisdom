@@ -99,6 +99,23 @@ window.Wisdom.Tagger = (function () {
     if (!wrap.contains(document.activeElement)) next.focus({ preventScroll: true });
   }
 
+  /* keyboard: 1-9 toggles the numbered "recent" tags, Space = next card.
+     (Space on a focused button is left to the browser so it isn't handled twice.) */
+  function onKey(e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    var qEl = $("queue");
+    if (qEl.classList.contains("hidden")) return;
+    var t = e.target, tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (/^[1-9]$/.test(e.key)) {
+      var chip = qEl.querySelector('.chip[data-key="' + e.key + '"]');
+      if (chip) { e.preventDefault(); chip.click(); }
+    } else if (e.key === " " && tag !== "BUTTON") {
+      var next = qEl.querySelector(".queue-nav .primary");
+      if (next) { e.preventDefault(); next.click(); }
+    }
+  }
+
   function advance() {
     q.sinceSave++;
     if (q.sinceSave >= C.savePromptEvery) { q.sinceSave = 0; W.toast("Tip: hit Save to publish your tagging so far", true); }
@@ -178,6 +195,7 @@ window.Wisdom.Tagger = (function () {
   function closeManager() { W.Dialog.hide($("tagManModal")); W.UI.renderAll(); }
 
   function wire() {
+    document.addEventListener("keydown", onKey);
     $("tagBtn").addEventListener("click", open);
     $("tagManBtn").addEventListener("click", openManager);
     $("tagManClose").addEventListener("click", closeManager);

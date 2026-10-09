@@ -3,7 +3,7 @@
    - css/js/icons         : cache-first. Their URLs carry ?v=..., so a new release is a new URL.
    - Google Fonts         : stale-while-revalidate
    Bump SHELL when this file's strategy changes; old caches are dropped on activate. */
-var SHELL = "wisdom-shell-v1";
+var SHELL = "wisdom-shell-v2";
 var FONTS = "wisdom-fonts-v1";
 var DATA_FILES = ["data/stamp.js", "data/tags.js", "data/cards.js"];
 var NETWORK_TIMEOUT = 5000;
@@ -15,8 +15,12 @@ self.addEventListener("install", function (e) {
     var html = await res.clone().text();
     await cache.put(new Request("index.html"), res);
     var urls = ["manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
-    var re = /(?:src|href)="((?:css|js)\/[^"]+)"/g, m;
+    var re = /href="(css\/[^"]+)"/g, m;
     while ((m = re.exec(html))) urls.push(m[1]);
+    /* code is injected by the loader in index.html: read its BUILD + APP list */
+    var build = (html.match(/BUILD = "([^"]+)"/) || [])[1];
+    var app = (html.match(/APP = \[([^\]]*)\]/) || [])[1];
+    if (build && app) app.match(/"[^"]+"/g).forEach(function (n) { urls.push("js/" + n.slice(1, -1) + ".js?v=" + build); });
     DATA_FILES.forEach(function (f) { urls.push(f); });
     await Promise.all(urls.map(async function (u) {
       var r = await fetch(u, { cache: "no-cache" });

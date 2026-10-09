@@ -20,9 +20,9 @@ try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElemen
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&amp;family=Inter:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=20261009d">
-<link rel="stylesheet" href="css/layout.css?v=20261009d">
-<link rel="stylesheet" href="css/components.css?v=20261009d">
+<link rel="stylesheet" href="css/tokens.css?v=20261009e">
+<link rel="stylesheet" href="css/layout.css?v=20261009e">
+<link rel="stylesheet" href="css/components.css?v=20261009e">
 </head>
 <body>
 
@@ -129,36 +129,40 @@ try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElemen
 <button class="save-fab owner-only hidden" id="saveBtn">Save</button>
 <div class="save-status hidden" id="saveStatus" role="status" aria-live="polite"></div>
 
-<!-- data (generated + app-written; plain scripts so file:// works).
-     GitHub Pages' CDN caches files ~10 min, which served stale data right after
-     a Save. So: read the stamp with a cache-busting request first, then load
-     every data file with ?v=<stamp> - a new Save means a new URL. (On file://
-     the request fails and the plain URLs are used.) -->
+<!-- Loader. GitHub Pages' CDN caches files ~10 min, which served stale data right
+     after a Save. So: fetch the stamp with a cache-busting request first, then load
+     data + code in order with ?v=<stamp> (data) / ?v=<BUILD> (code) - a new Save means
+     a new URL. On file:// or offline the fetch fails and the plain URLs are used. -->
 <script>
 (function () {
-  var v = "";
+  var BUILD = "20261009e";
+  var DATA = ["stamp", "tags", "cards"];
+  var APP = ["config", "util", "search", "store", "github", "render", "modals", "tagger", "app"];
+  /* appended together with async=false: downloads run in parallel, execution stays in order */
+  function load(srcs) {
+    srcs.forEach(function (src) {
+      var s = document.createElement("script");
+      s.src = src; s.async = false;
+      s.onerror = function () {
+        var m = document.getElementById("pendingNote");
+        if (m) { m.className = "pending-note"; m.textContent = "Couldn't load " + src + " — check your connection and reload."; }
+      };
+      document.body.appendChild(s);
+    });
+  }
+  function go(v) {
+    load(DATA.map(function (f) { return "data/" + f + ".js" + v; })
+      .concat(APP.map(function (f) { return "js/" + f + ".js?v=" + BUILD; })));
+  }
+  var done = false;
+  function once(v) { if (!done) { done = true; go(v); } }
   try {
-    var x = new XMLHttpRequest();
-    x.open("GET", "data/stamp.js?t=" + Date.now(), false);
-    x.send();
-    var m = x.status === 200 && x.responseText.match(/\.stamp\s*=\s*"([^"]*)"/);
-    if (m) v = "?v=" + m[1];
-  } catch (e) {}
-  ["stamp", "tags", "cards"].forEach(function (f) {
-    document.write('<script src="data/' + f + '.js' + v + '"><\/script>');
-  });
+    fetch("data/stamp.js?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (t) { var m = t.match(/\.stamp\s*=\s*"([^"]*)"/); once(m ? "?v=" + m[1] : ""); })
+      .catch(function () { once(""); });
+  } catch (e) { once(""); }
 })();
 </script>
-
-<!-- app -->
-<script src="js/config.js?v=20261009d"></script>
-<script src="js/util.js?v=20261009d"></script>
-<script src="js/search.js?v=20261009d"></script>
-<script src="js/store.js?v=20261009d"></script>
-<script src="js/github.js?v=20261009d"></script>
-<script src="js/render.js?v=20261009d"></script>
-<script src="js/modals.js?v=20261009d"></script>
-<script src="js/tagger.js?v=20261009d"></script>
-<script src="js/app.js?v=20261009d"></script>
 </body>
 </html>

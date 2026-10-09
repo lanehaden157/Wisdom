@@ -138,17 +138,17 @@ window.Wisdom.UI = (function () {
   function renderGrid(viewCards) {
     var grid = document.getElementById("grid");
     var meta = document.getElementById("resultsMeta");
-    var reading = isReading(state.category);
+    var reading = isReading(state.category) && state.similarTo == null;   /* similar view mixes categories */
     grid.className = "grid" + (reading ? " reading" : "");
     var filtered = viewCards.filter(matches);
     var q = state.query.trim(), approx = false, simCard = null;
     var tagLabel = function (slug) { var t = Store.tagsMap().tags[slug]; return t ? t.label : slug; };
     if (state.similarTo != null) {
-      simCard = viewCards.filter(function (c) { return c.id === state.similarTo; })[0] || null;
+      simCard = Store.cards().filter(function (c) { return c.id === state.similarTo; })[0] || null;
       if (!simCard) state.similarTo = null;
     }
     if (simCard) {
-      filtered = [simCard].concat(W.Search.similar(simCard, viewCards, 12, tagLabel).map(function (h) { return h.card; }));
+      filtered = [simCard].concat(W.Search.similar(simCard, Store.cards(), 12, tagLabel).map(function (h) { return h.card; }));
     } else if (q) {
       var r = W.Search.run(filtered, q, tagLabel);
       filtered = r.hits.map(function (h) { return h.card; });
@@ -163,7 +163,7 @@ window.Wisdom.UI = (function () {
     }
     if (q && !simCard) desc.push((approx ? "closest to " : "matching ") + '"' + q + '"');
     meta.appendChild(el("span", null, simCard
-      ? "More like " + cardNo(simCard.id) + " — " + (filtered.length - 1) + " found"
+      ? "More like " + cardNo(simCard.id) + " — " + (filtered.length - 1) + " found, across all tabs"
       : filtered.length + " of " + viewCards.length + " " + C.categoryLabel[state.category].toLowerCase() +
         (desc.length ? " — " + desc.join(", ") : "")));
     var multi = state.selectedTags.size > 1 && !state.selectedTags.has("__untagged__");
@@ -195,7 +195,8 @@ window.Wisdom.UI = (function () {
     if (sig !== lastSig) { lastSig = sig; shown = PAGE; }
     var tm = Store.tagsMap();
     filtered.slice(0, shown).forEach(function (c) {
-      var card = el("div", "card" + (reading ? " reading " + c.category : ""));
+      var cardReading = isReading(c.category) && (reading || simCard);
+      var card = el("div", "card" + (cardReading ? " reading " + c.category : ""));
       if (c.origin) card.setAttribute("data-origin", c.origin);
       if (c.edited || c.added) {
         card.appendChild(el("span", "draft-badge", c.added ? "unfiled" : "edited"));
