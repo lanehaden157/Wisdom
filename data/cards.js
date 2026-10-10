@@ -953,5 +953,6 @@ window.Wisdom.cards = [
  {"id":950,"text":"Too many years and not enough days","category":"quote","origin":"aa","tags":["time","humor","present-moment","paradox","aphorism"],"kw":"years, days, long sobriety, quality, one day at a time"},
  {"id":951,"text":"I don’t like it, but I’m grateful for it","category":"quote","origin":"aa","tags":["gratitude","acceptance","pain","aphorism","paradox"],"kw":"don't like it, grateful, gratitude anyway"},
  {"id":952,"text":"Face Everything And Recover","category":"quote","origin":"aa","tags":["acronym","fear","courage","slogan","action"],"kw":"face everything and recover, fear, face it"},
- {"id":953,"text":"I need the heat on and the windows open at the same time","category":"quote","origin":"aa","tags":["humor","balance","paradox","metaphor","the-disease","identification"],"kw":"heat on, windows open, contradiction, want both"}
+ {"id":953,"text":"I need the heat on and the windows open at the same time","category":"quote","origin":"aa","tags":["humor","balance","paradox","metaphor","the-disease","identification"],"kw":"heat on, windows open, contradiction, want both"},
+ {"id":954,"text":"When the path you walk always leads back to yourself, you never get anywhere","category":"quote","origin":"misc","tags":["aphorism","change","self-will"]}
 ];
