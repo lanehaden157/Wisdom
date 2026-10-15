@@ -1,3 +1,3 @@
 /* APP-WRITTEN. Bumped on every publish; namespaces localStorage. */
 window.Wisdom = window.Wisdom || {};
-window.Wisdom.stamp = "1791643932960";
+window.Wisdom.stamp = "1792027063296";
