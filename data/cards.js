@@ -955,5 +955,6 @@ window.Wisdom.cards = [
  {"id":952,"text":"Face Everything And Recover","category":"quote","origin":"aa","tags":["acronym","fear","courage","slogan","action"],"kw":"face everything and recover, fear, face it"},
  {"id":953,"text":"I need the heat on and the windows open at the same time","category":"quote","origin":"aa","tags":["humor","balance","paradox","metaphor","the-disease","identification"],"kw":"heat on, windows open, contradiction, want both"},
  {"id":954,"text":"When the path you walk always leads back to yourself, you never get anywhere","category":"quote","origin":"misc","tags":["aphorism","change","self-will"]},
- {"id":955,"text":"I can’t change the channel in my head","category":"quote","origin":"aa"}
+ {"id":955,"text":"I can’t change the channel in my head","category":"quote","origin":"aa"},
+ {"id":956,"text":"Just because my brain got dry cleaned, doesn’t mean I got any smarter","category":"quote"}
 ];
