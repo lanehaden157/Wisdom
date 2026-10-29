@@ -10,6 +10,24 @@ window.Wisdom.UI = (function () {
   var facetOpen = {};
   var PAGE = 60, shown = PAGE, lastSig = "";   /* render a page at a time: ~900 cards at once froze phones */
 
+  /* card order: random (reshuffled each page load), oldest first, newest first */
+  var ORDER_KEY = "wisdom_order_v1", rank = {};
+  function getOrder() {
+    var o = W.util.lsGet(ORDER_KEY, "random");
+    return o === "oldest" || o === "newest" ? o : "random";
+  }
+  function setOrder(o) { W.util.lsSet(ORDER_KEY, o); renderAll(); }
+  function ordered(cards) {
+    var o = getOrder();
+    if (o === "oldest") return cards;
+    if (o === "newest") return cards.slice().reverse();
+    return cards.slice().sort(function (a, b) {
+      if (rank[a.id] == null) rank[a.id] = Math.random();
+      if (rank[b.id] == null) rank[b.id] = Math.random();
+      return rank[a.id] - rank[b.id];
+    });
+  }
+
   function isReading(cat) { return C.readingCategories.indexOf(cat) !== -1; }
 
   function inCategory(cards) {
@@ -140,7 +158,7 @@ window.Wisdom.UI = (function () {
     var meta = document.getElementById("resultsMeta");
     var reading = isReading(state.category) && state.similarTo == null;   /* similar view mixes categories */
     grid.className = "grid" + (reading ? " reading" : "");
-    var filtered = viewCards.filter(matches);
+    var filtered = ordered(viewCards.filter(matches));
     var q = state.query.trim(), approx = false, simCard = null;
     var tagLabel = function (slug) { var t = Store.tagsMap().tags[slug]; return t ? t.label : slug; };
     if (state.similarTo != null) {
@@ -223,9 +241,9 @@ window.Wisdom.UI = (function () {
         tags.appendChild(el("span", "tag-chip untagged owner-only", "untagged"));
       }
       foot.appendChild(tags);
-      var like = el("button", "like-btn", "like this");
+      var like = el("button", "like-btn", "more like this");
       like.type = "button";
-      like.setAttribute("aria-label", "like this, " + cardNo(c.id));
+      like.setAttribute("aria-label", "more like this, " + cardNo(c.id));
       like.addEventListener("click", function () {
         state.similarTo = c.id; state.query = ""; state.selectedTags.clear();
         document.getElementById("search").value = "";
@@ -274,5 +292,5 @@ window.Wisdom.UI = (function () {
     renderPending();
   }
 
-  return { state: state, renderAll: renderAll, inCategory: inCategory, matches: matches };
+  return { state: state, getOrder: getOrder, setOrder: setOrder, renderAll: renderAll, inCategory: inCategory, matches: matches };
 })();

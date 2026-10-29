@@ -95,8 +95,24 @@ window.Wisdom.Github = (function () {
     });
   }
 
+  /* verify: does this token reach the repo with write access?
+     Resolves {ok:true} or {ok:false, reason:"auth"|"missing"|"readonly"|"offline"}. */
+  function verify(cfg) {
+    if (!cfg || !cfg.owner || !cfg.repo || !cfg.token) return Promise.resolve({ ok: false, reason: "auth" });
+    return fetch(C.api + "/repos/" + encodeURIComponent(cfg.owner) + "/" + encodeURIComponent(cfg.repo),
+      { headers: headers(cfg), cache: "no-store" }).then(function (r) {
+      if (r.status === 401 || r.status === 403) return { ok: false, reason: "auth" };
+      if (r.status === 404) return { ok: false, reason: "missing" };
+      if (!r.ok) return { ok: false, reason: "offline" };
+      return r.json().then(function (repo) {
+        return repo.permissions && repo.permissions.push ? { ok: true } : { ok: false, reason: "readonly" };
+      });
+    }, function () { return { ok: false, reason: "offline" }; });
+  }
+
   return {
     loadConfig: loadConfig, saveConfig: saveConfig, clearConfig: clearConfig,
+    verify: verify,
     publish: publish
   };
 })();

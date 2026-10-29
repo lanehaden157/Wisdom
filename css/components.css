@@ -469,3 +469,9 @@ details.picker-all[open] > summary::before { transform: rotate(90deg); }
   border-radius: 2px;
   opacity: 0.75;
 }
+.cfg-heading {
+  margin: 20px 0 6px;
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+}

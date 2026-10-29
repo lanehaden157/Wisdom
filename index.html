@@ -7,7 +7,7 @@
 <script>
 /* apply the saved theme before first paint (no light flash in dark mode) */
 try { var t = localStorage.getItem("wisdom_theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
-try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElement.setAttribute("data-owner", "1"); } catch (e) {}
+try { var oc = JSON.parse(localStorage.getItem("wisdom_site_config_v1") || "null"); if (oc && oc.token && oc.verified === true) document.documentElement.setAttribute("data-owner", "1"); } catch (e) {}
 </script>
 <title>Wisdom — A Working Index</title>
 <meta name="description" content="A personal card catalog of recovery quotes, poems and prayers.">
@@ -20,9 +20,9 @@ try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElemen
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&amp;family=Inter:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css?v=20261009e">
-<link rel="stylesheet" href="css/layout.css?v=20261009e">
-<link rel="stylesheet" href="css/components.css?v=20261009e">
+<link rel="stylesheet" href="css/tokens.css?v=20261028a">
+<link rel="stylesheet" href="css/layout.css?v=20261028a">
+<link rel="stylesheet" href="css/components.css?v=20261028a">
 </head>
 <body>
 
@@ -73,7 +73,11 @@ try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElemen
 <!-- settings -->
 <div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="modal-card">
-    <h2 id="settingsTitle">Site connection</h2>
+    <h2 id="settingsTitle">Settings</h2>
+    <span class="field-label">Card order</span>
+    <div id="cfgOrder"></div>
+    <p class="modal-hint spaced">Random reshuffles every time you open the page. Search results stay ranked by relevance.</p>
+    <h3 class="cfg-heading">Site connection</h3>
     <p class="modal-hint">Lets Save write straight back to your GitHub site. The token is stored only in this browser on this device — it never goes into the site files, so people you share the link with can read but never change anything.</p>
     <label class="cfg-label" for="cfgOwner">GitHub username</label>
     <input class="cfg-input" id="cfgOwner" autocomplete="off" autocapitalize="none" placeholder="GitHub username">
@@ -135,7 +139,7 @@ try { if (localStorage.getItem("wisdom_site_config_v1")) document.documentElemen
      a new URL. On file:// or offline the fetch fails and the plain URLs are used. -->
 <script>
 (function () {
-  var BUILD = "20261009e";
+  var BUILD = "20261028a";
   var DATA = ["stamp", "tags", "cards"];
   var APP = ["config", "util", "search", "store", "github", "render", "modals", "tagger", "app"];
   /* appended together with async=false: downloads run in parallel, execution stays in order */

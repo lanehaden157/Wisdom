@@ -66,6 +66,20 @@
 
   W.Modals.wire();
   W.setOwner(W.isOwner());
+
+  /* re-check a stored token in the background: restores edit tools for a token that
+     checks out, drops them if GitHub now refuses it (an offline check changes nothing) */
+  (function () {
+    var cfg = W.Github.loadConfig();
+    if (!cfg || !cfg.token || !navigator.onLine) return;
+    W.Github.verify(cfg).then(function (res) {
+      if (res.reason === "offline") return;
+      var was = cfg.verified === true;
+      cfg.verified = res.ok;
+      W.Github.saveConfig(cfg);
+      if (was !== res.ok) { W.setOwner(res.ok); W.UI.renderAll(); }
+    });
+  })();
   W.Tagger.wire();
   W.UI.renderAll();
 })();

@@ -177,7 +177,8 @@ window.Wisdom.Modals = (function () {
     document.body.classList.toggle("owner", !!on);
   }
   W.setOwner = setOwner;
-  function isOwner() { var c = W.Github.loadConfig(); return !!(c && c.token); }
+  /* only a token that GitHub confirmed can write to the repo counts */
+  function isOwner() { var c = W.Github.loadConfig(); return !!(c && c.token && c.verified === true); }
   W.isOwner = isOwner;
 
   /* ---- edit modal ---- */
@@ -240,6 +241,11 @@ window.Wisdom.Modals = (function () {
       $("cfgOwner").value = cfg.owner || "";
       $("cfgRepo").value = cfg.repo || "";
       $("cfgToken").value = cfg.token || "";
+      segmented($("cfgOrder"), [
+        { value: "random", label: "Random" },
+        { value: "oldest", label: "Oldest first" },
+        { value: "newest", label: "Newest first" }
+      ], W.UI.getOrder(), function (v) { W.UI.setOrder(v); });
       W.Dialog.show(sm, { onClose: closeSettings });
     }
     function closeSettings() {
@@ -253,9 +259,22 @@ window.Wisdom.Modals = (function () {
     $("cfgSave").addEventListener("click", function () {
       var cfg = { owner: $("cfgOwner").value.trim(), repo: $("cfgRepo").value.trim(), token: $("cfgToken").value.trim() };
       if (!cfg.owner || !cfg.repo || !cfg.token) { W.toast("All three fields are needed"); return; }
-      W.Github.saveConfig(cfg); closeSettings();
-      setOwner(true); W.UI.renderAll();
-      W.toast("Connected — Save now writes to your site");
+      W.toast("Checking the token…", true);
+      W.Github.verify(cfg).then(function (res) {
+        if (!res.ok) {
+          W.toast({
+            auth: "GitHub rejected that token — check it and try again",
+            missing: "That repository wasn't found, or the token can't see it",
+            readonly: "The token can read the repository but not write — it needs Contents: read and write",
+            offline: "Couldn't reach GitHub to check the token — try again when you're online"
+          }[res.reason], true);
+          return;
+        }
+        cfg.verified = true;
+        W.Github.saveConfig(cfg); closeSettings();
+        setOwner(true); W.UI.renderAll();
+        W.toast("Connected ✓ — editing is on and Save writes to your site");
+      });
     });
     $("cfgClear").addEventListener("click", function () {
       W.Github.clearConfig(); closeSettings();
