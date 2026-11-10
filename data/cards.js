@@ -964,5 +964,6 @@ window.Wisdom.cards = [
  {"id":961,"text":"Ain’t nothing in the steps that’s gonna hurt you","category":"quote","origin":"aa"},
  {"id":962,"text":"All good ideas are plagiarism, most bad ones are original","category":"quote","origin":"aa"},
  {"id":963,"text":"You’re just letting yourself out of your own prison","category":"quote","origin":"aa"},
- {"id":964,"text":"Should I forget the misery and pain of where I’ve been, remind me God, so I might not, return there ever again.","category":"poem","origin":"aa"}
+ {"id":964,"text":"Should I forget the misery and pain of where I’ve been, remind me God, so I might not, return there ever again.","category":"poem","origin":"aa"},
+ {"id":965,"text":"The purpose of an open mind is the purpose of an open mouth, to shut on something solid","category":"quote","origin":"religious"}
 ];
