@@ -971,5 +971,6 @@ window.Wisdom.cards = [
  {"id":968,"text":"Love em, that’s how you fix em","category":"quote","origin":"aa"},
  {"id":969,"text":"My observation is that some people can get by with a certain amount of postponement, but few can live with outright rebellion.","category":"quote","origin":"aa"},
  {"id":970,"text":"Trying to pray is praying","category":"quote","origin":"aa"},
- {"id":971,"text":"Honesty is the absence\nof the intent to deceive","category":"quote","origin":"aa"}
+ {"id":971,"text":"Honesty is the absence\nof the intent to deceive","category":"quote","origin":"aa"},
+ {"id":972,"text":"There is weariness in an abundance of things.","category":"quote","origin":"aa"}
 ];
