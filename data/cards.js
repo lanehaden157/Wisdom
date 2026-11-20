@@ -970,5 +970,6 @@ window.Wisdom.cards = [
  {"id":967,"text":"Congratulating an alcoholic, who stayed sober, is like, congratulating a cowboy with hemorrhoids for staying off his horse","category":"quote","origin":"aa"},
  {"id":968,"text":"Love em, that’s how you fix em","category":"quote","origin":"aa"},
  {"id":969,"text":"My observation is that some people can get by with a certain amount of postponement, but few can live with outright rebellion.","category":"quote","origin":"aa"},
- {"id":970,"text":"Trying to pray is praying","category":"quote","origin":"aa"}
+ {"id":970,"text":"Trying to pray is praying","category":"quote","origin":"aa"},
+ {"id":971,"text":"Honesty is the absence\nof the intent to deceive","category":"quote","origin":"aa"}
 ];
