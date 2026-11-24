@@ -973,5 +973,6 @@ window.Wisdom.cards = [
  {"id":970,"text":"Trying to pray is praying","category":"quote","origin":"aa"},
  {"id":971,"text":"Honesty is the absence\nof the intent to deceive","category":"quote","origin":"aa"},
  {"id":972,"text":"There is weariness in an abundance of things.","category":"quote","origin":"aa"},
- {"id":973,"text":"Seven days without a\nmeeting makes one weak.","category":"quote","origin":"aa"}
+ {"id":973,"text":"Seven days without a\nmeeting makes one weak.","category":"quote","origin":"aa"},
+ {"id":974,"text":"The joy is in the loving, not in being loved","category":"quote","origin":"aa"}
 ];
